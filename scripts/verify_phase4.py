@@ -4,7 +4,8 @@ Execute: python3 verify_phase4.py
 """
 
 import sys
-sys.path.insert(0, ".")
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from backend.app.core.mesh_packet import MeshPacket, HopRecord
 from backend.app.core.mesh_node import MeshNode

@@ -12,7 +12,7 @@ import tempfile
 from pathlib import Path
 
 # Add workspace to path
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fastapi.testclient import TestClient
 from backend.app.core.crypto import (

@@ -3,15 +3,15 @@ import {
   LayoutDashboard,
   MessageSquare,
   Network,
-  Shield,
   Activity,
   Package,
   Radio,
+  Users,
   Pin,
   PinOff,
 } from 'lucide-react';
 
-export type NavTabId = 'overview' | 'messages' | 'network' | 'security' | 'delivery' | 'packet-protection' | 'registry';
+export type NavTabId = 'overview' | 'messages' | 'network' | 'delivery' | 'packet-protection' | 'registry' | 'about';
 
 interface SidebarProps {
   activeTab: NavTabId;
@@ -30,10 +30,10 @@ const menuItems: MenuItem[] = [
   { id: 'overview', name: 'Overview', icon: LayoutDashboard, group: 'Main' },
   { id: 'messages', name: 'Emergency Messages', icon: MessageSquare, group: 'Main' },
   { id: 'network', name: 'Network', icon: Network, group: 'Main' },
-  { id: 'security', name: 'Security', icon: Shield, group: 'Main' },
   { id: 'delivery', name: 'Message Delivery', icon: Activity, group: 'Main' },
   { id: 'packet-protection', name: 'Packet Protection', icon: Package, group: 'Main' },
   { id: 'registry', name: 'Device Registry', icon: Radio, group: 'System' },
+  { id: 'about', name: 'About Us', icon: Users, group: 'System' },
 ];
 
 const groups: ('Main' | 'System')[] = ['Main', 'System'];

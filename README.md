@@ -214,13 +214,16 @@ npm run dev
 Run the standalone verification scripts and automated tests to evaluate correctness without opening the browser:
 
 ```bash
-# 1. Run End-to-End Encryption & 6-Step Gate Verification
-python3 verify_phase6.py
+# 1. Run Complete End-to-End System Verification (All 16 Invariants)
+python3 scripts/verify_all.py
 
-# 2. Run Packet Sniffing & Attack Simulation Verification
-python3 verify_phase7.py
+# 2. Run End-to-End Encryption & 6-Step Gate Verification
+python3 scripts/verify_phase6.py
 
-# 3. Run Full Automated Test Suite (Pytest)
+# 3. Run Packet Sniffing & Attack Simulation Verification
+python3 scripts/verify_phase7.py
+
+# 4. Run Full Automated Test Suite (Pytest)
 pytest tests/ -v
 ```
 

@@ -13,10 +13,10 @@ const TAB_TITLES: Record<NavTabId, string> = {
   overview: 'System Overview',
   messages: 'Emergency Messages',
   network: 'Mesh Network',
-  security: 'Security & Authorization',
   delivery: 'Message Delivery & Reliability',
   'packet-protection': 'Packet Protection Demo',
   registry: 'Device Registry',
+  about: 'About Team InnovateX',
 };
 
 export const Navbar: React.FC<NavbarProps> = ({

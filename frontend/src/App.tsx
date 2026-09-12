@@ -4,6 +4,7 @@ import { MeshVisualizer } from './components/MeshVisualizer';
 import { SecureMessaging } from './components/SecureMessaging';
 import { AttackSimulation } from './components/AttackSimulation';
 import { DeliveryResilience } from './components/DeliveryResilience';
+import { AboutUs } from './components/AboutUs';
 import { Sidebar, NavTabId } from './components/layout/Sidebar';
 import { Navbar } from './components/layout/Navbar';
 import { SectionHeader } from './components/layout/SectionHeader';
@@ -25,7 +26,6 @@ import {
   Activity,
   MessageSquare,
   Package,
-  Shield,
   ShieldCheck,
   WifiOff,
   Lock,
@@ -191,18 +191,22 @@ export const App: React.FC = () => {
             {/* ─── OVERVIEW ─── */}
             {activeTab === 'overview' && (
               <div className="space-y-6 animate-fade-in">
-                {/* Hero explanation */}
-                <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
-                      <Radio className="w-5 h-5 text-indigo-400" />
-                    </div>
-                    <h2 className="text-lg font-black text-slate-100">What is RESQ?</h2>
+                {/* Overview Header */}
+                <div className="flex items-center gap-3 border-b border-slate-800/70 pb-5">
+                  <div className="p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
+                    <Radio className="w-5 h-5 text-indigo-400" />
                   </div>
-                  <p className="text-sm text-slate-400 leading-relaxed max-w-3xl">
-                    RESQ helps emergency messages travel through a <strong className="text-slate-200">local device network</strong> when normal communication infrastructure is unavailable.
-                    When cellular networks fail during a disaster, RESQ routes encrypted messages through nearby rescue devices in a peer-to-peer mesh — without relying on the internet.
-                  </p>
+                  <div>
+                    <div className="flex items-center gap-2.5">
+                      <h2 className="text-xl font-black text-slate-100 tracking-tight">RESQ</h2>
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                        Tactical Mesh
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Zero-infrastructure, end-to-end encrypted emergency peer-to-peer mesh network.
+                    </p>
+                  </div>
                 </div>
 
                 {/* KPIs */}
@@ -282,11 +286,10 @@ export const App: React.FC = () => {
                 </div>
 
                 {/* Quick nav cards */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
                     { tab: 'messages' as NavTabId, icon: MessageSquare, label: 'Emergency Messages', color: 'indigo' },
                     { tab: 'network' as NavTabId, icon: Network, label: 'Mesh Network', color: 'cyan' },
-                    { tab: 'security' as NavTabId, icon: Shield, label: 'Security & Auth', color: 'emerald' },
                     { tab: 'delivery' as NavTabId, icon: Activity, label: 'Message Delivery', color: 'violet' },
                     { tab: 'packet-protection' as NavTabId, icon: Package, label: 'Packet Protection', color: 'amber' },
                   ].map(({ tab, icon: Icon, label, color }) => (
@@ -306,227 +309,24 @@ export const App: React.FC = () => {
 
             {/* ─── EMERGENCY MESSAGES ─── */}
             {activeTab === 'messages' && (
-              <div className="space-y-6 animate-fade-in">
-                <div className="flex items-center gap-3 border-b border-slate-800/70 pb-5">
-                  <div className="p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
-                    <MessageSquare className="w-5 h-5 text-indigo-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-black text-slate-100">Emergency Messages</h2>
-                    <p className="text-xs text-slate-400 mt-0.5">Compose, send, and track encrypted emergency messages through the mesh network.</p>
-                  </div>
-                </div>
-                <SecureMessaging members={members} onRefreshMembers={loadMembers} />
-              </div>
+              <SecureMessaging members={members} onRefreshMembers={loadMembers} />
             )}
 
             {/* ─── NETWORK ─── */}
             {activeTab === 'network' && (
-              <div className="space-y-6 animate-fade-in">
-                <div className="flex items-center gap-3 border-b border-slate-800/70 pb-5">
-                  <div className="p-2.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/20">
-                    <Network className="w-5 h-5 text-cyan-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-black text-slate-100">Mesh Network</h2>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Visualize the peer-to-peer relay network. Simulate node failures, connection outages, and alternative route discovery.
-                    </p>
-                  </div>
-                </div>
-                <MeshVisualizer />
-              </div>
+              <MeshVisualizer />
             )}
 
-            {/* ─── SECURITY ─── */}
-            {activeTab === 'security' && (
-              <div className="space-y-6 animate-fade-in">
-                <div className="flex items-center gap-3 border-b border-slate-800/70 pb-5">
-                  <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-                    <Shield className="w-5 h-5 text-emerald-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-black text-slate-100">Security &amp; Authorization</h2>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Every message is verified, signed, and authorized before decryption is allowed. No plaintext is ever exposed to intermediate nodes.
-                    </p>
-                  </div>
-                </div>
 
-                {/* Security principle cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    {
-                      icon: CheckCircle2,
-                      color: 'emerald',
-                      title: 'Sender Verified',
-                      desc: 'The sender must be a registered, active rescue responder. Revoked or unknown senders are immediately rejected.',
-                    },
-                    {
-                      icon: Lock,
-                      color: 'indigo',
-                      title: 'Message Protected',
-                      desc: 'Messages are encrypted with X25519 key agreement and ChaCha20-Poly1305 authenticated encryption before leaving the device.',
-                    },
-                    {
-                      icon: ShieldCheck,
-                      color: 'cyan',
-                      title: 'Signature Verified',
-                      desc: 'Every packet is signed with Ed25519. Any modification to the packet in transit causes signature verification to fail.',
-                    },
-                    {
-                      icon: Users,
-                      color: 'amber',
-                      title: 'Recipient Authorized',
-                      desc: 'Only the intended, active recipient can pass the decryption gate. Wrong recipient, wrong key, or modified packet — all rejected.',
-                    },
-                  ].map(({ icon: Icon, color, title, desc }) => (
-                    <div key={title} className={`rounded-2xl border border-${color}-500/20 bg-${color}-500/5 p-5`}>
-                      <div className="flex items-center gap-3 mb-3">
-                        <Icon className={`w-5 h-5 text-${color}-400`} />
-                        <h3 className={`font-bold text-${color}-300 text-sm`}>{title}</h3>
-                      </div>
-                      <p className="text-xs text-slate-400 leading-relaxed">{desc}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Verification flow */}
-                <div className="rounded-2xl border border-slate-800/60 bg-slate-900/40 p-6">
-                  <h3 className="text-sm font-bold text-slate-200 mb-4">Message Authorization Flow</h3>
-                  <div className="space-y-2">
-                    {[
-                      'Registry lookup — sender must exist',
-                      'Active status check — sender must not be revoked',
-                      'Ed25519 signature verification — packet integrity confirmed',
-                      'Recipient authorization — only intended device proceeds',
-                      'Authenticated decryption — ChaCha20-Poly1305 decryption with integrity check',
-                      'Plaintext released — only after all checks pass',
-                    ].map((step, i) => (
-                      <div key={i} className="flex items-center gap-3 py-2 border-b border-slate-800/40 last:border-0">
-                        <span className="w-6 h-6 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold flex items-center justify-center shrink-0">{i + 1}</span>
-                        <span className="text-xs text-slate-300">{step}</span>
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 ml-auto shrink-0" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Technical details section */}
-                <div className="rounded-2xl border border-slate-800/60 bg-slate-900/20 p-6">
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Technical Details</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {[
-                      { label: 'Key Agreement', value: 'X25519 ECDH' },
-                      { label: 'Key Derivation', value: 'HKDF-SHA256' },
-                      { label: 'Encryption', value: 'ChaCha20-Poly1305' },
-                      { label: 'Digital Signature', value: 'Ed25519' },
-                    ].map(({ label, value }) => (
-                      <div key={label} className="text-center">
-                        <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{label}</p>
-                        <p className="text-xs font-mono font-bold text-indigo-300">{value}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* ─── MESSAGE DELIVERY ─── */}
             {activeTab === 'delivery' && (
               <DeliveryResilience members={members} onNavigateToMessages={() => setActiveTab('messages')} />
             )}
 
-            {/* ─── PACKET PROTECTION ─── */}
+            {/* ─── PACKET PROTECTION & ATTACK SIMULATION ─── */}
             {activeTab === 'packet-protection' && (
-              <div className="space-y-6 animate-fade-in">
-                <div className="flex items-center gap-3 border-b border-slate-800/70 pb-5">
-                  <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20">
-                    <Package className="w-5 h-5 text-amber-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-black text-slate-100">Packet Protection Demo</h2>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      See what an attacker sees when they capture a packet — and why encryption makes the difference.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Key explanation */}
-                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
-                  <p className="text-sm text-amber-200 font-semibold mb-1">The goal is not to prevent packet capture.</p>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    The goal is to ensure that <strong className="text-slate-200">capturing a packet does not reveal the emergency message</strong>.
-                    An attacker on the same network may always intercept packets.
-                    Encryption means those packets are meaningless without the recipient's private key.
-                  </p>
-                </div>
-
-                {/* Side-by-side comparison */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="rounded-2xl border border-red-500/30 bg-red-500/5 p-5">
-                    <h3 className="text-sm font-bold text-red-300 mb-4 flex items-center gap-2">
-                      <WifiOff className="w-4 h-4" /> Unprotected Communication
-                    </h3>
-                    <div className="space-y-3 text-xs">
-                      <div className="flex items-center gap-2 text-slate-400">
-                        <span className="w-6 h-6 rounded-full bg-slate-800 text-slate-400 text-[10px] font-bold flex items-center justify-center">1</span>
-                        Message composed in plaintext
-                      </div>
-                      <div className="flex items-center gap-2 text-slate-400">
-                        <span className="w-6 h-6 rounded-full bg-slate-800 text-slate-400 text-[10px] font-bold flex items-center justify-center">2</span>
-                        Unencrypted packet transmitted
-                      </div>
-                      <div className="flex items-center gap-2 text-red-400">
-                        <span className="w-6 h-6 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold flex items-center justify-center">3</span>
-                        Attacker captures packet
-                      </div>
-                      <div className="flex items-center gap-2 text-red-400 font-bold">
-                        <span className="w-6 h-6 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold flex items-center justify-center">4</span>
-                        Attacker reads original message ⚠️
-                      </div>
-                    </div>
-                    <div className="mt-4 p-3 bg-red-900/20 border border-red-500/20 rounded-xl font-mono text-xs text-red-300">
-                      "SOS: Three trapped in building B. Send medics immediately."
-                    </div>
-                    <p className="text-[10px] text-red-400 font-bold mt-2 uppercase tracking-wider">Result: Message exposed</p>
-                  </div>
-
-                  <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5">
-                    <h3 className="text-sm font-bold text-emerald-300 mb-4 flex items-center gap-2">
-                      <Lock className="w-4 h-4" /> Protected Communication
-                    </h3>
-                    <div className="space-y-3 text-xs">
-                      <div className="flex items-center gap-2 text-slate-400">
-                        <span className="w-6 h-6 rounded-full bg-slate-800 text-slate-400 text-[10px] font-bold flex items-center justify-center">1</span>
-                        Message encrypted with recipient's key
-                      </div>
-                      <div className="flex items-center gap-2 text-slate-400">
-                        <span className="w-6 h-6 rounded-full bg-slate-800 text-slate-400 text-[10px] font-bold flex items-center justify-center">2</span>
-                        Encrypted + signed packet transmitted
-                      </div>
-                      <div className="flex items-center gap-2 text-slate-400">
-                        <span className="w-6 h-6 rounded-full bg-slate-800 text-slate-400 text-[10px] font-bold flex items-center justify-center">3</span>
-                        Attacker captures packet
-                      </div>
-                      <div className="flex items-center gap-2 text-emerald-400 font-bold">
-                        <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold flex items-center justify-center">4</span>
-                        Attacker sees only ciphertext ✓
-                      </div>
-                    </div>
-                    <div className="mt-4 p-3 bg-emerald-900/10 border border-emerald-500/20 rounded-xl font-mono text-xs text-slate-500 break-all">
-                      ChaCha20ciphertext+Poly1305tag...nonce+salt+ephemeralkey+Ed25519sig
-                    </div>
-                    <p className="text-[10px] text-emerald-400 font-bold mt-2 uppercase tracking-wider">Result: Message protected — only authorized recipient can read</p>
-                  </div>
-                </div>
-
-                {/* Live demo via AttackSimulation */}
-                <div className="rounded-2xl border border-slate-800/60 bg-slate-900/20 p-4">
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Live Demonstration</h3>
-                  <AttackSimulation />
-                </div>
-              </div>
+              <AttackSimulation />
             )}
 
             {/* ─── DEVICE REGISTRY ─── */}
@@ -703,6 +503,11 @@ export const App: React.FC = () => {
                   )}
                 </div>
               </div>
+            )}
+
+            {/* ─── ABOUT US ─── */}
+            {activeTab === 'about' && (
+              <AboutUs />
             )}
           </div>
         </main>
