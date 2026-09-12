@@ -1,0 +1,1 @@
+Unencrypted peer-to-peer mesh network vulnerable to packet sniffing during a blackout
