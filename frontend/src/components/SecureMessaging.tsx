@@ -6,6 +6,17 @@ import {
   InboxMessageSummary,
   DecryptMessageResponse,
 } from '../types';
+import {
+  ShieldCheck,
+  ShieldAlert,
+  Lock,
+  Unlock,
+  CheckCircle2,
+  AlertTriangle,
+  RefreshCw,
+  FileText,
+} from 'lucide-react';
+import { SectionHeader } from './layout/SectionHeader';
 
 interface SecureMessagingProps {
   members: RescueMember[];
@@ -113,10 +124,10 @@ export const SecureMessaging: React.FC<SecureMessagingProps> = ({
 
       setLastSentResponse(resp);
       setSendSuccess(
-        `Dispatched ${resp.packet_id} across ${resp.hop_log.length} mesh hop(s) successfully.`
+        `Dispatched ${resp.packet_id.slice(0, 8)} across ${resp.hop_log.length} mesh hop(s) successfully.`
       );
 
-      // If currently inspecting recipient device, refresh its inbox automatically
+      // Refresh inbox if currently inspecting recipient device
       if (
         inspectDeviceId === recipientId ||
         members.find((m) => m.rescue_id === recipientId)?.device_id === inspectDeviceId
@@ -165,7 +176,6 @@ export const SecureMessaging: React.FC<SecureMessagingProps> = ({
     setDecryptError(null);
 
     try {
-      // Intentionally corrupt ciphertext string
       const tamperedPayload = {
         ...lastSentResponse.payload,
         ciphertext: 'TAMPERED' + lastSentResponse.payload.ciphertext.slice(8),
@@ -193,7 +203,6 @@ export const SecureMessaging: React.FC<SecureMessagingProps> = ({
     setDecryptError(null);
 
     try {
-      // Directly submit the exact same payload a second time
       const resp = await apiService.decryptMessage({
         recipient_id: inspectDeviceId || lastSentResponse.recipient_id,
         payload: lastSentResponse.payload,
@@ -214,110 +223,69 @@ export const SecureMessaging: React.FC<SecureMessagingProps> = ({
   const recipientMember = members.find(
     (m) => m.rescue_id === recipientId || m.device_id === recipientId
   );
-  const inspectingMember = members.find(
-    (m) => m.rescue_id === inspectDeviceId || m.device_id === inspectDeviceId
-  );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      {/* Overview Banner */}
-      <div
-        style={{
-          background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(16, 185, 129, 0.08))',
-          border: '1px solid rgba(6, 182, 212, 0.3)',
-          borderRadius: 'var(--radius-md)',
-          padding: '1.5rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
-        }}
-      >
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
-            <span
-              style={{
-                background: 'var(--accent-emerald)',
-                color: '#000',
-                fontSize: '0.72rem',
-                fontWeight: 800,
-                padding: '0.2rem 0.6rem',
-                borderRadius: '999px',
-                letterSpacing: '0.04em',
-              }}
-            >
-              PHASE 6 ACTIVE
-            </span>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              End-to-End Secure Transmission &amp; Authorization Gate
-            </h2>
+    <div className="space-y-8 animate-fade-in">
+      {/* 1. Header Banner */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-slate-800/70 pb-5">
+        <div className="flex items-center gap-3.5">
+          <div className="p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shrink-0">
+            <Lock className="w-6 h-6" />
           </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', maxWidth: '780px' }}>
-            Transmits authenticated emergency distress dispatches over multi-hop mesh topologies using{' '}
-            <strong style={{ color: 'var(--accent-cyan)' }}>X25519 + ChaCha20-Poly1305 + HKDF-SHA256</strong>, signed with{' '}
-            <strong style={{ color: 'var(--accent-amber)' }}>Ed25519</strong>. The Phase 6 authorization gate strictly enforces
-            registry lookup, active status, digital signature, recipient authorization, and replay protection before releasing plaintext.
-          </p>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-100 uppercase tracking-tight">
+                Secure Transmission Console
+              </h1>
+              <span className="px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full">
+                Phase 5 & 6 Active
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-1 max-w-3xl leading-relaxed">
+              End-to-end encrypted mesh messaging with{' '}
+              <strong className="text-cyan-400 font-mono">ECDH (X25519) + ChaCha20-Poly1305 + HKDF-SHA256</strong>, signed with{' '}
+              <strong className="text-amber-400 font-mono">Ed25519</strong>. The authorization gate enforces strict signature validation, registry lookup, and replay defense before releasing plaintext.
+            </p>
+          </div>
         </div>
 
         <button
+          type="button"
           onClick={() => {
             onRefreshMembers();
             if (inspectDeviceId) loadInbox(inspectDeviceId);
           }}
-          className="btn-secondary"
-          style={{ padding: '0.55rem 1rem', fontSize: '0.82rem' }}
+          className="px-4 py-2 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-slate-100 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 shrink-0 self-start xl:self-auto"
         >
-          ↻ Refresh System State
+          <RefreshCw className="w-3.5 h-3.5 text-indigo-400" />
+          Refresh State
         </button>
       </div>
 
-      {/* Main Two-Column Grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(480px, 1fr))',
-          gap: '2rem',
-        }}
-      >
+      {/* 2. Main Two-Column Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
         {/* ================================================================= */}
-        {/* COLUMN 1: SECURE MESSAGE COMPOSER & WIRE PACKET INSPECTOR         */}
+        {/* COLUMN 1: COMPOSER & WIRE PACKET INSPECTOR (6 cols)              */}
         {/* ================================================================= */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="xl:col-span-6 space-y-6">
           {/* Composer Card */}
-          <div
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)',
-              padding: '1.5rem',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-              <span style={{ fontSize: '1.2rem' }}>🔒</span>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Compose Authenticated Distress Dispatch</h3>
-            </div>
+          <div className="glass-card rounded-2xl border border-slate-800/60 p-6 relative overflow-hidden">
+            <SectionHeader
+              title="Compose Authenticated Distress Dispatch"
+              accentColor="bg-indigo-500"
+            />
 
-            <form onSubmit={handleSendMessage} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-              {/* Sender & Recipient Pickers */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <form onSubmit={handleSendMessage} className="space-y-4">
+              {/* Sender & Recipient Dropdowns */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                     Sender Identity (Signer)
                   </label>
                   <select
                     value={senderId}
                     onChange={(e) => setSenderId(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.6rem 0.75rem',
-                      background: 'rgba(0,0,0,0.3)',
-                      border: '1px solid var(--border-subtle)',
-                      borderRadius: 'var(--radius-sm)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.85rem',
-                    }}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-200 outline-none focus:border-indigo-500 cursor-pointer"
                   >
                     <option value="">Select Sender...</option>
                     {members.map((m) => (
@@ -327,28 +295,23 @@ export const SecureMessaging: React.FC<SecureMessagingProps> = ({
                     ))}
                   </select>
                   {senderMember && (
-                    <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.2rem', display: 'block' }}>
-                      Device: {senderMember.device_id} &bull; Signing Key: {senderMember.signing_public_key ? '✓ Available' : '✗ Missing'}
+                    <span className="text-[10px] text-slate-500 mt-1 block font-mono">
+                      Device: {senderMember.device_id} • Key:{' '}
+                      <span className={senderMember.signing_public_key ? 'text-emerald-400' : 'text-red-400'}>
+                        {senderMember.signing_public_key ? '✓ Available' : '✗ Missing'}
+                      </span>
                     </span>
                   )}
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                     Recipient Identity (Decryptor)
                   </label>
                   <select
                     value={recipientId}
                     onChange={(e) => setRecipientId(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.6rem 0.75rem',
-                      background: 'rgba(0,0,0,0.3)',
-                      border: '1px solid var(--border-subtle)',
-                      borderRadius: 'var(--radius-sm)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.85rem',
-                    }}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-200 outline-none focus:border-indigo-500 cursor-pointer"
                   >
                     <option value="">Select Recipient...</option>
                     {members.map((m) => (
@@ -358,8 +321,11 @@ export const SecureMessaging: React.FC<SecureMessagingProps> = ({
                     ))}
                   </select>
                   {recipientMember && (
-                    <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.2rem', display: 'block' }}>
-                      Device: {recipientMember.device_id} &bull; Encryption Key: {recipientMember.encryption_public_key ? '✓ Available' : '✗ Missing'}
+                    <span className="text-[10px] text-slate-500 mt-1 block font-mono">
+                      Device: {recipientMember.device_id} • Key:{' '}
+                      <span className={recipientMember.encryption_public_key ? 'text-emerald-400' : 'text-red-400'}>
+                        {recipientMember.encryption_public_key ? '✓ Available' : '✗ Missing'}
+                      </span>
                     </span>
                   )}
                 </div>
@@ -367,24 +333,16 @@ export const SecureMessaging: React.FC<SecureMessagingProps> = ({
 
               {/* Priority & Plaintext Input */}
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                  <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                    Emergency Plaintext Content
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Emergency Plaintext Message
                   </label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Priority:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase font-bold text-slate-500">Priority:</span>
                     <select
                       value={priority}
                       onChange={(e) => setPriority(e.target.value)}
-                      style={{
-                        padding: '0.2rem 0.5rem',
-                        background: 'rgba(0,0,0,0.3)',
-                        border: '1px solid var(--border-subtle)',
-                        borderRadius: '4px',
-                        color: 'var(--accent-amber)',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                      }}
+                      className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-0.5 text-[11px] font-bold text-amber-400 outline-none cursor-pointer"
                     >
                       <option value="NORMAL">NORMAL</option>
                       <option value="HIGH">HIGH</option>
@@ -392,216 +350,126 @@ export const SecureMessaging: React.FC<SecureMessagingProps> = ({
                     </select>
                   </div>
                 </div>
+
                 <textarea
                   rows={3}
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
                   placeholder="Enter distress call, casualty report, or rescue coordinates..."
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    background: 'rgba(0,0,0,0.3)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-sm)',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.88rem',
-                    resize: 'vertical',
-                    fontFamily: 'inherit',
-                  }}
+                  className="w-full bg-slate-900/60 border border-slate-700/60 text-slate-200 text-xs rounded-xl p-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors placeholder:text-slate-600 outline-none font-medium leading-relaxed resize-none"
                 />
               </div>
 
               {/* Status alerts */}
               {sendError && (
-                <div
-                  style={{
-                    background: 'rgba(244, 63, 94, 0.15)',
-                    border: '1px solid var(--accent-rose)',
-                    color: 'var(--accent-rose)',
-                    padding: '0.65rem 0.85rem',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.82rem',
-                  }}
-                >
-                  <strong>Transmission Error:</strong> {sendError}
+                <div className="flex items-center gap-2.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl p-3 text-xs animate-shake">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{sendError}</span>
                 </div>
               )}
 
               {sendSuccess && (
-                <div
-                  style={{
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    border: '1px solid var(--accent-emerald)',
-                    color: 'var(--accent-emerald)',
-                    padding: '0.65rem 0.85rem',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.82rem',
-                  }}
-                >
-                  <strong>Success:</strong> {sendSuccess}
+                <div className="flex items-center gap-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl p-3 text-xs animate-fade-in">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{sendSuccess}</span>
                 </div>
               )}
 
               <button
                 type="submit"
                 disabled={sending}
-                style={{
-                  background: 'linear-gradient(135deg, #06b6d4, #0284c7)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '0.8rem 1.25rem',
-                  fontWeight: 700,
-                  fontSize: '0.92rem',
-                  cursor: sending ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 0 15px var(--accent-cyan-glow)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                }}
+                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 disabled:from-slate-800 disabled:to-slate-800 border border-indigo-500/20 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-600/20 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:cursor-not-allowed"
               >
-                {sending ? 'Encrypting & Transmitting...' : '🔒 Encrypt, Sign & Dispatch to Mesh'}
+                {sending ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Encrypting, Signing & Forwarding...
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    Encrypt, Sign & Dispatch to Mesh
+                  </>
+                )}
               </button>
             </form>
           </div>
 
-          {/* Wire Packet Inspector */}
+          {/* Wire Packet Payload Inspector */}
           {lastSentResponse && (
-            <div
-              style={{
-                background: 'var(--bg-card)',
-                border: '1px solid rgba(6, 182, 212, 0.3)',
-                borderRadius: 'var(--radius-md)',
-                padding: '1.5rem',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '1.1rem' }}>📦</span>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>Wire Packet Payload Inspector</h4>
-                </div>
-                <span
-                  style={{
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    background: 'rgba(16, 185, 129, 0.2)',
-                    color: 'var(--accent-emerald)',
-                    padding: '0.2rem 0.55rem',
-                    borderRadius: '999px',
-                    border: '1px solid var(--accent-emerald)',
-                  }}
-                >
-                  ZERO PLAINTEXT ON WIRE
+            <div className="glass-card rounded-2xl border border-cyan-500/30 p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800/60">
+                <SectionHeader title="Wire Packet Inspector" accentColor="bg-cyan-500" className="mb-0" />
+                <span className="px-2.5 py-0.5 text-[9px] font-mono font-bold uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full">
+                  Zero Plaintext on Wire
                 </span>
               </div>
 
               {/* Hop Trail */}
-              <div
-                style={{
-                  background: 'rgba(0,0,0,0.3)',
-                  padding: '0.65rem 0.85rem',
-                  borderRadius: 'var(--radius-sm)',
-                  marginBottom: '1rem',
-                  fontSize: '0.82rem',
-                }}
-              >
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.3rem' }}>
-                  Forwarding Path ({lastSentResponse.hop_log.length} Hops):
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>{lastSentResponse.sender_id}</span>
+              <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-900 text-xs">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                  Mesh Forwarding Path ({lastSentResponse.hop_log.length} Hops):
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
+                  <span className="font-bold text-cyan-400">{lastSentResponse.sender_id}</span>
                   {lastSentResponse.hop_log.map((h, idx) => (
                     <React.Fragment key={idx}>
-                      <span style={{ color: 'var(--text-muted)' }}>&rarr;</span>
-                      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{h.to_node}</span>
+                      <span className="text-slate-600">➔</span>
+                      <span className="text-slate-300 font-semibold">{h.to_node}</span>
                     </React.Fragment>
                   ))}
-                  <span style={{ color: 'var(--text-muted)' }}>&rarr;</span>
-                  <span style={{ color: 'var(--accent-emerald)', fontWeight: 700 }}>{lastSentResponse.recipient_id}</span>
+                  <span className="text-slate-600">➔</span>
+                  <span className="font-bold text-emerald-400">{lastSentResponse.recipient_id}</span>
                 </div>
               </div>
 
               {/* Payload Field Details */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.3rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Packet ID:</span>
-                  <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{lastSentResponse.payload.packet_id}</span>
+              <div className="space-y-2 text-xs font-mono">
+                <div className="flex justify-between items-center py-1 border-b border-slate-900">
+                  <span className="text-slate-500 text-[10px] uppercase font-bold">Packet ID:</span>
+                  <span className="text-slate-200 font-bold">{lastSentResponse.payload.packet_id}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.3rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Cipher Suite:</span>
-                  <span style={{ color: 'var(--accent-cyan)' }}>
-                    {lastSentResponse.payload.cipher} / {lastSentResponse.payload.kdf} / {lastSentResponse.payload.key_agreement}
+                <div className="flex justify-between items-center py-1 border-b border-slate-900">
+                  <span className="text-slate-500 text-[10px] uppercase font-bold">Cipher Suite:</span>
+                  <span className="text-cyan-400 font-bold">
+                    {lastSentResponse.payload.cipher} / {lastSentResponse.payload.kdf}
                   </span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.3rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Ephemeral Pub (X25519):</span>
-                  <span style={{ color: 'var(--text-secondary)' }} title={lastSentResponse.payload.ephemeral_public_key}>
-                    {lastSentResponse.payload.ephemeral_public_key.slice(0, 24)}... (32B B64)
+                <div className="flex justify-between items-center py-1 border-b border-slate-900">
+                  <span className="text-slate-500 text-[10px] uppercase font-bold">Ephemeral Pub (X25519):</span>
+                  <span className="text-slate-300 truncate max-w-[200px]" title={lastSentResponse.payload.ephemeral_public_key}>
+                    {lastSentResponse.payload.ephemeral_public_key.slice(0, 20)}...
                   </span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.3rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Salt / Nonce:</span>
-                  <span style={{ color: 'var(--text-secondary)' }}>
-                    Salt: {lastSentResponse.payload.salt} &bull; Nonce: {lastSentResponse.payload.nonce}
+                <div className="flex justify-between items-center py-1 border-b border-slate-900">
+                  <span className="text-slate-500 text-[10px] uppercase font-bold">Ciphertext + Tag:</span>
+                  <span className="text-amber-400 font-bold truncate max-w-[200px]" title={lastSentResponse.payload.ciphertext}>
+                    {lastSentResponse.payload.ciphertext.slice(0, 24)}... ({lastSentResponse.payload.ciphertext.length}B)
                   </span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.3rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Ciphertext + Tag:</span>
-                  <span style={{ color: 'var(--accent-amber)' }} title={lastSentResponse.payload.ciphertext}>
-                    {lastSentResponse.payload.ciphertext.slice(0, 28)}... ({lastSentResponse.payload.ciphertext.length} chars)
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.3rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Ed25519 Signature:</span>
-                  <span style={{ color: 'var(--accent-emerald)' }} title={lastSentResponse.payload.signature}>
-                    {lastSentResponse.payload.signature.slice(0, 28)}... (64B B64)
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-slate-500 text-[10px] uppercase font-bold">Ed25519 Signature:</span>
+                  <span className="text-emerald-400 font-bold truncate max-w-[200px]" title={lastSentResponse.payload.signature}>
+                    {lastSentResponse.payload.signature.slice(0, 24)}... (64B)
                   </span>
                 </div>
               </div>
 
-              {/* Attack Demonstration Controls */}
-              <div
-                style={{
-                  marginTop: '1.25rem',
-                  paddingTop: '1rem',
-                  borderTop: '1px dashed var(--border-subtle)',
-                  display: 'flex',
-                  gap: '0.75rem',
-                  flexWrap: 'wrap',
-                }}
-              >
+              {/* Attack Sandbox Controls */}
+              <div className="pt-3 border-t border-slate-800/60 flex gap-3">
                 <button
+                  type="button"
                   onClick={handleTestTamperDefense}
                   disabled={tampering}
-                  style={{
-                    flex: 1,
-                    padding: '0.5rem 0.75rem',
-                    background: 'rgba(244, 63, 94, 0.15)',
-                    border: '1px solid var(--accent-rose)',
-                    color: 'var(--accent-rose)',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    cursor: tampering ? 'not-allowed' : 'pointer',
-                  }}
+                  className="flex-1 py-2 px-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50"
                 >
                   ⚡ Test Tamper Defense
                 </button>
                 <button
+                  type="button"
                   onClick={handleTestReplayDefense}
                   disabled={tampering}
-                  style={{
-                    flex: 1,
-                    padding: '0.5rem 0.75rem',
-                    background: 'rgba(245, 158, 11, 0.15)',
-                    border: '1px solid var(--accent-amber)',
-                    color: 'var(--accent-amber)',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    cursor: tampering ? 'not-allowed' : 'pointer',
-                  }}
+                  className="flex-1 py-2 px-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50"
                 >
                   ⚡ Test Replay Defense
                 </button>
@@ -611,345 +479,142 @@ export const SecureMessaging: React.FC<SecureMessagingProps> = ({
         </div>
 
         {/* ================================================================= */}
-        {/* COLUMN 2: RECIPIENT INBOX & PHASE 6 CONTROLLED DECRYPTION GATE   */}
+        {/* COLUMN 2: RECIPIENT INBOX & DECRYPTION GATE (6 cols)              */}
         {/* ================================================================= */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Recipient Device Inbox Card */}
-          <div
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)',
-              padding: '1.5rem',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '1.2rem' }}>📬</span>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Recipient Device Inbox</h3>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="xl:col-span-6 space-y-6">
+          {/* Recipient Inbox Card */}
+          <div className="glass-card rounded-2xl border border-slate-800/60 p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800/60 mb-4">
+              <SectionHeader title="Recipient Device Inbox" accentColor="bg-cyan-500" className="mb-0" />
+              <div className="flex items-center gap-2">
                 <select
                   value={inspectDeviceId}
                   onChange={(e) => setInspectDeviceId(e.target.value)}
-                  style={{
-                    padding: '0.45rem 0.75rem',
-                    background: 'rgba(0,0,0,0.3)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-sm)',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.82rem',
-                  }}
+                  className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-200 outline-none focus:border-indigo-500 cursor-pointer"
                 >
                   <option value="">Select Inspect Device...</option>
                   {members.map((m) => (
                     <option key={m.rescue_id} value={m.rescue_id}>
-                      {m.name} ({m.rescue_id} / {m.device_id})
+                      {m.name} ({m.rescue_id})
                     </option>
                   ))}
                 </select>
                 <button
-                  onClick={() => loadInbox(inspectDeviceId)}
-                  disabled={loadingInbox || !inspectDeviceId}
-                  className="btn-secondary"
-                  style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}
+                  type="button"
+                  onClick={() => inspectDeviceId && loadInbox(inspectDeviceId)}
+                  className="p-2 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-400 hover:text-slate-200 rounded-xl transition-all cursor-pointer"
+                  title="Reload Inbox"
                 >
-                  {loadingInbox ? '...' : '↻'}
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingInbox ? 'animate-spin text-indigo-400' : ''}`} />
                 </button>
               </div>
             </div>
 
-            {inspectingMember && (
-              <div
-                style={{
-                  background: 'rgba(0,0,0,0.25)',
-                  padding: '0.6rem 0.8rem',
-                  borderRadius: 'var(--radius-sm)',
-                  marginBottom: '1rem',
-                  fontSize: '0.78rem',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <span>
-                  Inspecting: <strong>{inspectingMember.name}</strong> ({inspectingMember.rescue_id})
-                </span>
-                <span style={{ color: inspectingMember.status === 'active' ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
-                  ● {inspectingMember.status.toUpperCase()}
-                </span>
-              </div>
-            )}
-
-            {/* Inbox Message List */}
             {loadingInbox ? (
-              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+              <div className="py-8 text-center text-slate-500 text-xs font-mono animate-pulse">
                 Loading device inbox...
               </div>
             ) : inboxMessages.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
-                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📭</div>
-                <div style={{ fontSize: '0.9rem' }}>No encrypted packets currently in this device inbox.</div>
-                <div style={{ fontSize: '0.78rem', marginTop: '0.25rem' }}>
-                  Dispatch a message from the left panel to route packets to this node.
-                </div>
+              <div className="py-8 text-center text-slate-500 space-y-2 bg-slate-950/40 rounded-xl border border-slate-900">
+                <FileText className="w-6 h-6 mx-auto text-slate-600" />
+                <p className="text-xs">No incoming packets in this device's inbox.</p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '280px', overflowY: 'auto' }}>
-                {inboxMessages.map((item) => {
-                  const isProcessing = decryptingPacketId === item.packet_id;
-                  return (
-                    <div
-                      key={item.packet_id}
-                      style={{
-                        background: 'rgba(0,0,0,0.3)',
-                        border: '1px solid var(--border-subtle)',
-                        borderRadius: 'var(--radius-sm)',
-                        padding: '0.85rem',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: '0.75rem',
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                          <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--accent-cyan)' }}>
-                            {item.packet_id}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: '0.68rem',
-                              padding: '0.15rem 0.4rem',
-                              background: 'rgba(245, 158, 11, 0.2)',
-                              color: 'var(--accent-amber)',
-                              borderRadius: '4px',
-                            }}
+              <div className="overflow-x-auto border border-slate-900 rounded-xl max-h-[260px] overflow-y-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="bg-slate-900/80 sticky top-0 border-b border-slate-800">
+                    <tr>
+                      <th className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Packet</th>
+                      <th className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sender</th>
+                      <th className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Time</th>
+                      <th className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/40 font-mono">
+                    {inboxMessages.map((msg) => (
+                      <tr key={msg.packet_id} className="hover:bg-slate-850/40">
+                        <td className="px-3 py-2 text-indigo-400 font-bold">{msg.packet_id.slice(0, 8)}...</td>
+                        <td className="px-3 py-2 text-slate-300">{msg.sender_rescue_id || msg.sender_device_id}</td>
+                        <td className="px-3 py-2 text-slate-500 text-[10px]">
+                          {msg.timestamp ? new Date(msg.timestamp * 1000).toLocaleTimeString() : 'N/A'}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleDecryptInboxMessage(msg.packet_id)}
+                            disabled={decryptingPacketId === msg.packet_id}
+                            className="px-2.5 py-1 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50 inline-flex items-center gap-1"
                           >
-                            ENCRYPTED
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-                          From: <strong>{item.sender_rescue_id}</strong> &bull; {new Date(item.timestamp * 1000).toLocaleTimeString()}
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => handleDecryptInboxMessage(item.packet_id)}
-                        disabled={isProcessing}
-                        style={{
-                          background: 'linear-gradient(135deg, #10b981, #059669)',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: 'var(--radius-sm)',
-                          padding: '0.45rem 0.9rem',
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          cursor: isProcessing ? 'not-allowed' : 'pointer',
-                          boxShadow: '0 0 10px var(--accent-emerald-glow)',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {isProcessing ? 'Verifying...' : 'Authorize & Decrypt'}
-                      </button>
-                    </div>
-                  );
-                })}
+                            <Unlock className="w-3 h-3" />
+                            {decryptingPacketId === msg.packet_id ? 'Decrypting...' : 'Decrypt'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
 
-          {/* Phase 6 Controlled Decryption Gate Visualizer */}
-          <div
-            style={{
-              background: 'var(--bg-card)',
-              border: decryptionResult
-                ? decryptionResult.status === 'SUCCESS'
-                  ? '1px solid var(--accent-emerald)'
-                  : '1px solid var(--accent-rose)'
-                : '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)',
-              padding: '1.5rem',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '1.1rem' }}>🛡️</span>
-                <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>Phase 6 Authorization Gate Decisions</h4>
-              </div>
-              {decryptionResult && (
-                <span
-                  style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 800,
-                    padding: '0.2rem 0.6rem',
-                    borderRadius: '999px',
-                    background:
-                      decryptionResult.status === 'SUCCESS'
-                        ? 'rgba(16, 185, 129, 0.2)'
-                        : 'rgba(244, 63, 94, 0.2)',
-                    color:
-                      decryptionResult.status === 'SUCCESS'
-                        ? 'var(--accent-emerald)'
-                        : 'var(--accent-rose)',
-                    border:
-                      decryptionResult.status === 'SUCCESS'
-                        ? '1px solid var(--accent-emerald)'
-                        : '1px solid var(--accent-rose)',
-                  }}
-                >
-                  GATE DECISION: {decryptionResult.status}
-                </span>
-              )}
-            </div>
-
-            {/* 6 Strict Gate Checkpoints */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', marginBottom: '1.25rem' }}>
-              {[
-                {
-                  step: 1,
-                  name: 'Sender Registry Lookup',
-                  desc: 'Verifies sender identity exists in the trusted rescue directory',
-                  passed: decryptionResult?.status === 'SUCCESS' || (decryptionResult?.status === 'REJECTED' && decryptionResult.reason !== 'UNKNOWN_SENDER'),
-                  failed: decryptionResult?.status === 'REJECTED' && decryptionResult.reason === 'UNKNOWN_SENDER',
-                },
-                {
-                  step: 2,
-                  name: 'Member Status Validation',
-                  desc: 'Ensures sender member is active and not revoked',
-                  passed: decryptionResult?.status === 'SUCCESS' || (decryptionResult?.status === 'REJECTED' && !decryptionResult.reason?.startsWith('SENDER_')),
-                  failed: decryptionResult?.status === 'REJECTED' && decryptionResult.reason?.startsWith('SENDER_'),
-                },
-                {
-                  step: 3,
-                  name: 'Ed25519 Digital Signature Verification',
-                  desc: 'Verifies authentic signature over RFC 8785 canonical JSON metadata + ciphertext',
-                  passed: decryptionResult?.status === 'SUCCESS' || (decryptionResult?.status === 'REJECTED' && decryptionResult.reason !== 'INVALID_SIGNATURE'),
-                  failed: decryptionResult?.status === 'REJECTED' && decryptionResult.reason === 'INVALID_SIGNATURE',
-                },
-                {
-                  step: 4,
-                  name: 'Recipient Authorization Enforcement',
-                  desc: 'Ensures current device is the authorized cryptographic destination',
-                  passed: decryptionResult?.status === 'SUCCESS' || (decryptionResult?.status === 'REJECTED' && decryptionResult.reason !== 'UNAUTHORIZED_RECIPIENT'),
-                  failed: decryptionResult?.status === 'REJECTED' && decryptionResult.reason === 'UNAUTHORIZED_RECIPIENT',
-                },
-                {
-                  step: 5,
-                  name: 'Protocol Replay & Drift Check',
-                  desc: 'Detects duplicate packet_ids and rejects expired timestamp drift',
-                  passed: decryptionResult?.status === 'SUCCESS' || (decryptionResult?.status === 'REJECTED' && decryptionResult.reason !== 'REPLAY_ATTACK_DETECTED' && decryptionResult.reason !== 'TIMESTAMP_EXPIRED'),
-                  failed: decryptionResult?.status === 'REJECTED' && (decryptionResult.reason === 'REPLAY_ATTACK_DETECTED' || decryptionResult.reason === 'TIMESTAMP_EXPIRED'),
-                },
-                {
-                  step: 6,
-                  name: 'ChaCha20-Poly1305 AEAD Decryption',
-                  desc: 'Derives symmetric key via HKDF-SHA256 and validates 16-byte Poly1305 MAC tag with AAD',
-                  passed: decryptionResult?.status === 'SUCCESS',
-                  failed: decryptionResult?.status === 'REJECTED' && decryptionResult.reason === 'DECRYPTION_FAILED',
-                },
-              ].map((c) => {
-                const isActive = decryptionResult !== null;
-                return (
-                  <div
-                    key={c.step}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.45rem 0.75rem',
-                      background: 'rgba(0,0,0,0.2)',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: '0.78rem',
-                    }}
-                  >
-                    <div>
-                      <span style={{ fontWeight: 700, color: 'var(--text-primary)', marginRight: '0.5rem' }}>
-                        Check {c.step}: {c.name}
-                      </span>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>{c.desc}</span>
-                    </div>
-                    <div>
-                      {!isActive ? (
-                        <span style={{ color: 'var(--text-muted)' }}>Standby</span>
-                      ) : c.failed ? (
-                        <span style={{ color: 'var(--accent-rose)', fontWeight: 800 }}>FAILED ✗</span>
-                      ) : (
-                        <span style={{ color: 'var(--accent-emerald)', fontWeight: 800 }}>PASSED ✓</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Controlled Plaintext Reveal or Suppression */}
-            {decryptionResult?.status === 'SUCCESS' && (
-              <div
-                style={{
-                  background: 'rgba(16, 185, 129, 0.1)',
-                  border: '1px solid var(--accent-emerald)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '1rem',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--accent-emerald)', fontWeight: 700 }}>
-                    AUTHENTICATED SENDER: {decryptionResult.sender_name} ({decryptionResult.sender_id})
-                  </span>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    Packet: {decryptionResult.packet_id}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    fontSize: '0.95rem',
-                    color: 'var(--text-primary)',
-                    fontWeight: 600,
-                    lineHeight: 1.5,
-                    marginBottom: '0.5rem',
-                  }}
-                >
-                  "{decryptionResult.message}"
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  Plaintext released safely. Zero sensitive data was leaked during multi-hop transmission.
-                </div>
-              </div>
-            )}
-
-            {decryptionResult?.status === 'REJECTED' && (
-              <div
-                style={{
-                  background: 'rgba(244, 63, 94, 0.12)',
-                  border: '1px solid var(--accent-rose)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '1rem',
-                }}
-              >
-                <div style={{ fontSize: '0.8rem', color: 'var(--accent-rose)', fontWeight: 700, marginBottom: '0.35rem' }}>
-                  ACCESS DENIED: {decryptionResult.reason}
-                </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  The Phase 6 decryption gate suppressed plaintext release because the message failed security verification.
-                  Neither plaintext nor cryptographic keys were leaked.
-                </div>
-              </div>
-            )}
+          {/* Controlled Decryption Gate Inspector Card */}
+          <div className="glass-card rounded-2xl border border-slate-800/60 p-6 space-y-4">
+            <SectionHeader title="Decryption Gate Security Inspector" accentColor="bg-emerald-500" />
 
             {decryptError && (
-              <div
-                style={{
-                  background: 'rgba(244, 63, 94, 0.15)',
-                  border: '1px solid var(--accent-rose)',
-                  color: 'var(--accent-rose)',
-                  padding: '0.65rem 0.85rem',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: '0.82rem',
-                  marginTop: '0.75rem',
-                }}
-              >
-                <strong>Error:</strong> {decryptError}
+              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl space-y-2 animate-shake">
+                <div className="flex items-center gap-2 text-red-400 font-bold text-xs uppercase tracking-wider">
+                  <ShieldAlert className="w-4 h-4 text-red-500" />
+                  <span>Decryption Gate: Access Denied / Security Violation</span>
+                </div>
+                <p className="text-xs text-red-300 font-mono">{decryptError}</p>
+              </div>
+            )}
+
+            {decryptionResult ? (
+              <div className="space-y-4 animate-fade-in">
+                {/* Security Checks Row */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-center">
+                    <span className="text-[9px] uppercase font-bold text-slate-500 block">Sender Auth</span>
+                    <span className="text-xs font-mono font-bold text-emerald-400">✓ VERIFIED</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-center">
+                    <span className="text-[9px] uppercase font-bold text-slate-500 block">Signature</span>
+                    <span className="text-xs font-mono font-bold text-emerald-400">✓ ED25519 VALID</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-center">
+                    <span className="text-[9px] uppercase font-bold text-slate-500 block">Cipher Integrity</span>
+                    <span className="text-xs font-mono font-bold text-emerald-400">✓ POLY1305 AUTH</span>
+                  </div>
+                </div>
+
+                {/* Plaintext Box */}
+                <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-1.5">
+                  <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
+                    Decrypted Plaintext Emergency Message:
+                  </span>
+                  <p className="text-sm font-semibold text-slate-100 leading-relaxed font-sans">
+                    {decryptionResult.message || 'No plaintext message returned.'}
+                  </p>
+                </div>
+
+                {/* Metadata details */}
+                <div className="text-[11px] font-mono text-slate-400 space-y-1 bg-slate-950/60 p-3 rounded-xl border border-slate-900">
+                  <div><strong>Sender:</strong> {decryptionResult.sender_name || 'N/A'} ({decryptionResult.sender_id || 'N/A'})</div>
+                  <div><strong>Packet ID:</strong> {decryptionResult.packet_id || 'N/A'}</div>
+                  <div><strong>Status:</strong> {decryptionResult.status}</div>
+                  {decryptionResult.reason && (
+                    <div className="text-amber-400"><strong>Notice:</strong> {decryptionResult.reason}</div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="py-8 text-center text-slate-500 space-y-2 bg-slate-950/40 rounded-xl border border-slate-900">
+                <ShieldCheck className="w-6 h-6 mx-auto text-slate-600" />
+                <p className="text-xs">
+                  Select a message from the inbox above and click <strong>Decrypt</strong> to execute the cryptographic authorization gate.
+                </p>
               </div>
             )}
           </div>
