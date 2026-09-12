@@ -19600,6 +19600,120 @@
         "ciphertext": "6CBW+ylaB0IeCsDswUfJfnBjyDTztBWTXesuC8q2bKSGo8OcO2voq3ixweLBkYS8yeW/QDUXz1p5zOTYeY3AX04g2otIYeXVQE91rn2k9HEuFQVYrP6NzIU=",
         "signature": "nkAuVAVO3rJKO9iYL7iIoelD/uMgQkN4GxtYBW0tpYxF0KeePFMgl+SQGoBF628ghk4GTlOwceUVlJr9LT3cDQ=="
       }
+    },
+    {
+      "message_id": "MSG-06D3F14F",
+      "packet_id": "PKT-1C0D57CE",
+      "sender_device_id": "DEVICE-001",
+      "recipient_device_id": "DEVICE-002",
+      "sender_rescue_id": "RESQ-001",
+      "recipient_rescue_id": "RESQ-002",
+      "conversation_id": "CONV_DEVICE-001_DEVICE-002",
+      "created_at": 1789235098.978378,
+      "delivered_at": 1789235099.039375,
+      "decrypted_at": 1789235102.321412,
+      "status": "DECRYPTED",
+      "failure_reason": null,
+      "retry_count": 0,
+      "hop_count": 1,
+      "route": [
+        "NODE-A",
+        "NODE-B"
+      ],
+      "payload": {
+        "version": 1,
+        "packet_id": "PKT-1C0D57CE",
+        "message_id": "MSG-06D3F14F",
+        "sender_rescue_id": "RESQ-001",
+        "sender_device_id": "DEVICE-001",
+        "recipient_rescue_id": "RESQ-002",
+        "recipient_device_id": "DEVICE-002",
+        "timestamp": 1789235098,
+        "key_agreement": "X25519",
+        "kdf": "HKDF-SHA256",
+        "cipher": "ChaCha20-Poly1305",
+        "ephemeral_public_key": "M4ZHdFZ5VWCXgQqP0yEL5dX1HVSo4ckKN3mUDq1/uxc=",
+        "salt": "qi2gkmZcGXwqD1OzFY5YJw==",
+        "nonce": "oxHjC5MsDfNJQZ1r",
+        "ciphertext": "JPqTRc8y2qGGVvmsq37xg1z6M46RgYbnwNNBQPop/qJuFfQaYxxj4gumVgpMjL4yGwSCjIwUePi7TfgcoWuhNjhgvKnIrIxvwNOA9KVA9O8PRbUTURd2B97rMgAHp0UsQRyHhZDowm0yyyDrNXCs",
+        "signature": "4e7wpY7UpilxeCRzGe+He+ZaXAs44wUxe8g6xY9AISOu77w631YKU9bmI0+egAPvt3OnPbmaZekLzFvBv3j0Cw=="
+      }
+    },
+    {
+      "message_id": "MSG-3494481E",
+      "packet_id": "PKT-F331750D",
+      "sender_device_id": "DEVICE-001",
+      "recipient_device_id": "DEVICE-002",
+      "sender_rescue_id": "RESQ-001",
+      "recipient_rescue_id": "RESQ-002",
+      "conversation_id": "CONV_DEVICE-001_DEVICE-002",
+      "created_at": 1789235127.367315,
+      "delivered_at": 1789235127.439747,
+      "decrypted_at": null,
+      "status": "DELIVERED",
+      "failure_reason": null,
+      "retry_count": 0,
+      "hop_count": 1,
+      "route": [
+        "NODE-A",
+        "NODE-B"
+      ],
+      "payload": {
+        "version": 1,
+        "packet_id": "PKT-F331750D",
+        "message_id": "MSG-3494481E",
+        "sender_rescue_id": "RESQ-001",
+        "sender_device_id": "DEVICE-001",
+        "recipient_rescue_id": "RESQ-002",
+        "recipient_device_id": "DEVICE-002",
+        "timestamp": 1789235127,
+        "key_agreement": "X25519",
+        "kdf": "HKDF-SHA256",
+        "cipher": "ChaCha20-Poly1305",
+        "ephemeral_public_key": "1neBIBNQ28YqZFEa1ufLOOegzcZ6M39wCaz86pedmEg=",
+        "salt": "bXT9C3c8FWlwQFFX9SHdQw==",
+        "nonce": "OisUc5NssZGkWdS0",
+        "ciphertext": "0ggn80tHgLDWo3TfJ+CtPCxaemQBp5VTqPVgl2yjGdUb5rC62Xi+VyDfA+Y8Ilo0t+T9YokiCb/NP/ef/WMXimq+t/cQ+cdDe9ywYNPwKYUXT8KMuRQtwCcqAbiAKd7Cr/4yEOoQ8gdcUO/aR/i+",
+        "signature": "pKWkjHOIqlKnUnztSvGK3x4lxxxRXpSTSAdmAyOSF/M0NFBoOkStWy0uEGTvFGqH+SIXJcLYwaJcjolcT6S/Ag=="
+      }
+    },
+    {
+      "message_id": "MSG-B8C16A9A",
+      "packet_id": "PKT-BEF67FAA",
+      "sender_device_id": "DEVICE-001",
+      "recipient_device_id": "DEVICE-002",
+      "sender_rescue_id": "RESQ-001",
+      "recipient_rescue_id": "RESQ-002",
+      "conversation_id": "CONV_DEVICE-001_DEVICE-002",
+      "created_at": 1789235180.723131,
+      "delivered_at": 1789235180.796,
+      "decrypted_at": null,
+      "status": "DELIVERED",
+      "failure_reason": null,
+      "retry_count": 0,
+      "hop_count": 1,
+      "route": [
+        "NODE-A",
+        "NODE-B"
+      ],
+      "payload": {
+        "version": 1,
+        "packet_id": "PKT-BEF67FAA",
+        "message_id": "MSG-B8C16A9A",
+        "sender_rescue_id": "RESQ-001",
+        "sender_device_id": "DEVICE-001",
+        "recipient_rescue_id": "RESQ-002",
+        "recipient_device_id": "DEVICE-002",
+        "timestamp": 1789235180,
+        "key_agreement": "X25519",
+        "kdf": "HKDF-SHA256",
+        "cipher": "ChaCha20-Poly1305",
+        "ephemeral_public_key": "3kBywg3iFKw+DQw8scomgqJIZPBXIcQFRUfjD3l8MXU=",
+        "salt": "u6h20K3+A7gzNlR0VI26bA==",
+        "nonce": "xq/urnEnv+lTSOoZ",
+        "ciphertext": "g6ThnCJu1JdVOM01TylKZen5IBeOyAbSnqLtOb8JCdf0aXzo2K/eM+l7oJGi14+fomq+hDyfvUe5XW1oor+PtnkpA7ycX9Mo8/up9FBh3OM1OBSHR3jyW/VLYG2TlWDicnTb96kPmrihlNYa223r",
+        "signature": "UJDAehU5lP9N4E9tGxT776QWmQkz+WQF5yH/bPy4sZczFsixhnRGog+krHGmWCILbokzuAtXSQ0gBfcRnHGjBA=="
+      }
     }
   ]
 }

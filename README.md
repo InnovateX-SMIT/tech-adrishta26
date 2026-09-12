@@ -11,6 +11,10 @@
 > When blackouts, earthquakes, or conflicts take down cellular towers and internet backbones, first responders rely on ad-hoc wireless mesh relays. However, **traditional mesh networks broadcast plain unencrypted packets**, leaving life-critical coordinates and rescue plans vulnerable to sniffing, spoofing, and tampering.  
 > **RESQ solves this with a military-grade Zero-Trust Mesh Architecture**: guaranteed **Zero Plaintext on the Wire**, authenticated sender identities via **Ed25519**, ephemeral forward secrecy via **X25519 ECDH + ChaCha20-Poly1305**, and a **Strict 6-Step Receiver Decryption Gate**.
 
+<p align="center">
+  <img src="assets/screenshots/overview.png" alt="RESQ Tactical Command Dashboard" width="100%" />
+</p>
+
 ---
 
 ## 📌 Table of Contents
@@ -19,7 +23,8 @@
 - [🖥️ Interactive System Walkthrough](#️-interactive-system-walkthrough)
   - [1. Mesh Simulation Engine](#1-mesh-simulation-engine)
   - [2. Secure Transmission Console](#2-secure-transmission-console)
-  - [3. Trusted Rescue-Team Registry](#3-trusted-rescue-team-registry)
+  - [3. Message Delivery & Reliability](#3-message-delivery--reliability)
+  - [4. Trusted Rescue-Team Registry](#4-trusted-rescue-team-registry)
 - [🛡️ The 6-Step Decryption Gate](#️-the-6-step-decryption-gate)
 - [⚙️ Tech Stack & Cryptography Standards](#️-tech-stack--cryptography-standards)
 - [🚀 Quick Start Guide (Run in 2 Minutes)](#-quick-start-guide-run-in-2-minutes)
@@ -47,10 +52,10 @@ RESQ features a built-in **Side-by-Side Attack Simulator** that proves the secur
 *In standard mesh protocols, messages travel in cleartext over untrusted relays. An eavesdropper sniffs the airwaves and reads life-critical distress data immediately.*
 
 <p align="center">
-  <img src="assets/screenshots/vulnerable.jpg" alt="Vulnerable Mode Selection" width="100%" />
+  <img src="assets/screenshots/vulnerable.png" alt="Vulnerable Mode Selection" width="100%" />
 </p>
 <p align="center">
-  <img src="assets/screenshots/vulnerable1.jpg" alt="Vulnerable Mode Sniffer Interception" width="100%" />
+  <img src="assets/screenshots/vulnerable1.png" alt="Vulnerable Mode Sniffer Interception" width="100%" />
 </p>
 
 - **Attacker Sniffer Panel:** Intercepts packet `PKT-VULN-0530153F` and directly reads:  
@@ -81,7 +86,7 @@ RESQ features a built-in **Side-by-Side Attack Simulator** that proves the secur
 Simulates a multi-hop ad-hoc wireless mesh topology with dynamic node states, link outages, and packet path tracing.
 
 <p align="center">
-  <img src="assets/screenshots/mesh.jpg" alt="Mesh Simulation Engine" width="100%" />
+  <img src="assets/screenshots/mesh.png" alt="Mesh Simulation Engine" width="100%" />
 </p>
 
 - **Visual Canvas:** Real-time visual graph rendering relays (`NODE-A` through `NODE-E`) and active links.
@@ -95,7 +100,7 @@ Simulates a multi-hop ad-hoc wireless mesh topology with dynamic node states, li
 The command dashboard for field commanders and responders to dispatch distress signals and inspect wire packets.
 
 <p align="center">
-  <img src="assets/screenshots/transmission%20control.jpg" alt="Secure Transmission Console" width="100%" />
+  <img src="assets/screenshots/transmission_control.png" alt="Secure Transmission Console" width="100%" />
 </p>
 
 - **Authenticated Dispatcher:** Cryptographically signs dispatches with the sender’s private key (`Ed25519`) and encrypts targeting the recipient’s public key (`X25519`).
@@ -104,11 +109,23 @@ The command dashboard for field commanders and responders to dispatch distress s
 
 ---
 
-### 3. Trusted Rescue-Team Registry
+### 3. Message Delivery & Reliability
+Real-time audit log of all in-flight dispatches, verification receipts, and hop-by-hop acknowledgment tracking.
+
+<p align="center">
+  <img src="assets/screenshots/delivery.png" alt="Message Delivery & Reliability" width="100%" />
+</p>
+
+- **Delivery Status Tracking:** Real-time telemetry monitoring acknowledgment confirmations from destination nodes.
+- **Audit Trails:** Immutable transmission timestamps, route hop history, and latency metrics.
+
+---
+
+### 4. Trusted Rescue-Team Registry
 The public-key infrastructure (PKI) and cryptographic device authority.
 
 <p align="center">
-  <img src="assets/screenshots/dataregistry.jpg" alt="Trusted Rescue Team Registry" width="100%" />
+  <img src="assets/screenshots/dataregistry.png" alt="Trusted Rescue Team Registry" width="100%" />
 </p>
 
 - **Responder Enrollment:** Onboard field units with auto-generated unique `Rescue ID` (e.g., `RESQ-001`) and hardware `Device ID`.
