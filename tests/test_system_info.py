@@ -11,15 +11,15 @@ def test_get_system_info_endpoint():
     data = response.json()
     assert data["project"] == "RESQ"
     assert data["mode"] == "development"
-    assert data["mesh_enabled"] is False
+    assert data["mesh_enabled"] is True       # Phase 4: mesh is active
     assert data["encryption_enabled"] is False
-    assert data["phase"] in [1, 2, 3]
+    assert data["phase"] in [1, 2, 3, 4]
 
 
 def test_system_info_does_not_falsely_claim_security_enabled():
     response = client.get("/api/system/info")
     assert response.status_code == 200
     data = response.json()
-    # Explicit boundary check: Phase 1 must never claim encryption or mesh are active
+    # Phase 4 boundary check: encryption is still off, only mesh is enabled
     assert data["encryption_enabled"] is False
-    assert data["mesh_enabled"] is False
+    assert data["mesh_enabled"] is True       # Phase 4 activates mesh

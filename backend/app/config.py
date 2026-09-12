@@ -11,9 +11,9 @@ class Settings(BaseSettings):
     environment: str = "development"
     backend_host: str = "127.0.0.1"
     backend_port: int = 8000
-    phase: int = 3
-    phase_name: str = "phase-3"
-    mesh_enabled: bool = False
+    phase: int = 4
+    phase_name: str = "phase-4"
+    mesh_enabled: bool = True
     encryption_enabled: bool = False
 
     # CORS configuration
