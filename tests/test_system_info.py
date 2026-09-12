@@ -12,8 +12,8 @@ def test_get_system_info_endpoint():
     assert data["project"] == "RESQ"
     assert data["mode"] == "development"
     assert data["mesh_enabled"] is True
-    assert data["encryption_enabled"] is True     # Phase 6: end-to-end encryption is active
-    assert data["phase"] == 6
+    assert data["encryption_enabled"] is True     # Phase 8: all phases active
+    assert data["phase"] == 8
 
 
 def test_system_info_reflects_phase6_active():
@@ -22,5 +22,5 @@ def test_system_info_reflects_phase6_active():
     data = response.json()
     assert data["encryption_enabled"] is True
     assert data["mesh_enabled"] is True
-    assert data["phase"] == 6
+    assert data["phase"] == 8
 

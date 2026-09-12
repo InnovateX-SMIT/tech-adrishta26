@@ -349,9 +349,11 @@ class AttackSimulationService:
             logger.info(log_5)
 
             # 4. Authorized Receiver executes Phase 6 gate
+            reg_path_str = str(self.registry_service.registry_path) if getattr(self.registry_service, "registry_path", None) else None
             gate_result = process_incoming_packet(
                 packet=wire_payload,
                 current_receiver_id=recipient_member.device_id,
+                registry_path=reg_path_str,
             )
 
             if gate_result.get("status") == "SUCCESS":
@@ -422,9 +424,11 @@ class AttackSimulationService:
         target_receiver = recipient_id or capture.recipient_id
 
         # Submit tampered packet to Phase 6 authorization & decryption gate
+        reg_path_str = str(self.registry_service.registry_path) if getattr(self.registry_service, "registry_path", None) else None
         gate_res = process_incoming_packet(
             packet=tampered_payload,
             current_receiver_id=target_receiver,
+            registry_path=reg_path_str,
         )
 
         status = gate_res.get("status", "REJECTED")

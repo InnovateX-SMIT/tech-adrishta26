@@ -149,7 +149,7 @@ export const AttackSimulation: React.FC = () => {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20 mb-3">
               <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
-              Phase 7 — Packet-Sniffing Attack Simulation & Contrast Mode
+              Security Demonstration — Eavesdropping & Packet Protection Contrast
             </div>
             <h1 className="text-2xl lg:text-3xl font-bold text-slate-100 tracking-tight">
               Eavesdropping & Confidentiality Contrast
@@ -169,7 +169,7 @@ export const AttackSimulation: React.FC = () => {
               onClick={handleReset}
               disabled={resetting}
               className="flex items-center gap-2 px-4 py-2 bg-slate-800/80 hover:bg-slate-750 text-slate-300 hover:text-white rounded-xl border border-slate-700 text-xs font-medium transition-all shadow-sm self-start md:self-auto disabled:opacity-50"
-              title="Clears Phase 7 simulation captures while preserving registry identities and keys"
+              title="Clears simulation captures while preserving registry identities and keys"
             >
               <RotateCcw className={`w-3.5 h-3.5 ${resetting ? 'animate-spin' : ''}`} />
               {resetting ? 'Resetting...' : 'Reset Simulation'}

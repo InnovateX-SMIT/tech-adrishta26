@@ -316,6 +316,24 @@ export const apiService = {
       { method: 'POST' }
     );
   },
+
+  // -------------------------------------------------------------------------
+  // Phase 8 — Dashboard & Real-Time Visualization
+  // -------------------------------------------------------------------------
+
+  async getDashboardOverview(): Promise<import('../types').DashboardOverviewResponse> {
+    return requestWithTimeout<import('../types').DashboardOverviewResponse>('/api/dashboard/overview');
+  },
+
+  async quickDispatchMessage(
+    payload: import('../types').QuickDispatchRequest
+  ): Promise<import('../types').QuickDispatchResponse> {
+    return requestWithTimeout<import('../types').QuickDispatchResponse>('/api/dashboard/quick-dispatch', {
+      method: 'POST',
+      body: payload,
+      timeoutMs: 15000,
+    });
+  },
 };
 
 

@@ -318,4 +318,104 @@ export interface AttackStatusResponse {
 }
 
 
+// ---------------------------------------------------------------------------
+// Phase 8 — Dashboard & Real-Time Visualization Types
+// ---------------------------------------------------------------------------
 
+export interface OperationalStatusPills {
+  cellular_network: string;
+  cellular_status: string;
+  emergency_mesh: string;
+  mesh_status: string;
+  encryption: string;
+  encryption_status: string;
+  identity_authority: string;
+  identity_status: string;
+  controlled_decryption: string;
+  decryption_status: string;
+}
+
+export interface DashboardNodeSummary {
+  node_id: string;
+  device_id: string;
+  name: string;
+  team: string;
+  role: string;
+  is_online: boolean;
+  is_attacker: boolean;
+  is_keyed: boolean;
+  neighbors: string[];
+}
+
+export interface DashboardRouteSummary {
+  route_id: string;
+  source: string;
+  destination: string;
+  hops: string[];
+  hop_count: number;
+  status: string;
+}
+
+export interface DashboardMessagingSummary {
+  total_messages: number;
+  delivered_count: number;
+  in_transit_count: number;
+  failed_count: number;
+  recent_messages: Record<string, unknown>[];
+}
+
+export interface DashboardAttackerSummary {
+  attacker_node_id: string;
+  is_sniffing: boolean;
+  total_intercepted: number;
+  vulnerable_captures: number;
+  protected_captures: number;
+  latest_capture: Record<string, unknown> | null;
+  readability_verdict: string;
+}
+
+export interface DashboardSecuritySummary {
+  active_responders_count: number;
+  keyed_devices_count: number;
+  revoked_count: number;
+  gate_success_rate: number;
+  recent_security_events: string[];
+}
+
+export interface DashboardOverviewResponse {
+  timestamp: string;
+  phase: number;
+  phase_name: string;
+  blackout_in_effect: boolean;
+  operational_status: OperationalStatusPills;
+  nodes: DashboardNodeSummary[];
+  edges: string[][];
+  active_route: DashboardRouteSummary | null;
+  messaging: DashboardMessagingSummary;
+  security: DashboardSecuritySummary;
+  attacker: DashboardAttackerSummary;
+  summary_takeaway: string;
+}
+
+export interface QuickDispatchRequest {
+  mode: 'protected' | 'vulnerable';
+  sender_id: string;
+  recipient_id: string;
+  message: string;
+}
+
+export interface QuickDispatchResponse {
+  status: string;
+  mode: string;
+  packet_id: string;
+  message_id: string;
+  route: string[];
+  hop_count: number;
+  captured_by_attacker: boolean;
+  attacker_readable: boolean;
+  attacker_sniffed: string;
+  security_gate_decision: string;
+  decrypted_message: string | null;
+  explanation: string;
+  overview: DashboardOverviewResponse;
+}

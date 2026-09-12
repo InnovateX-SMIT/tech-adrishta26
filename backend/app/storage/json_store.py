@@ -1,6 +1,7 @@
 import json
 import os
 import tempfile
+import time
 from pathlib import Path
 from typing import Any, Optional, Union
 
@@ -91,9 +92,17 @@ def save_json(file_path: Union[str, Path], data: Any, indent: int = 2) -> None:
             tmp_file.flush()
             os.fsync(tmp_file.fileno())
 
-        # Atomic replacement of target file
-        os.replace(temp_path, path)
-        temp_path = None
+        # Atomic replacement of target file with transient retry for Windows file locks
+        for attempt in range(5):
+            try:
+                os.replace(temp_path, path)
+                temp_path = None
+                break
+            except PermissionError:
+                if attempt < 4:
+                    time.sleep(0.02 * (2 ** attempt))
+                else:
+                    raise
     except (TypeError, ValueError) as exc:
         raise JsonStoreError(f"Data is not JSON serializable: {exc}") from exc
     except OSError as exc:

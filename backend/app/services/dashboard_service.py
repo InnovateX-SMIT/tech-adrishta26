@@ -43,7 +43,7 @@ class DashboardService:
 
     def get_overview(self) -> DashboardOverviewResponse:
         net = self.get_network()
-        all_members = self.registry_service.list_members()
+        all_members = self.registry_service.get_all_members()
         member_by_dev = {m.device_id: m for m in all_members}
         member_by_resq = {m.rescue_id: m for m in all_members}
 
@@ -94,8 +94,16 @@ class DashboardService:
                 status=last_log.status,
             )
 
-        # Messaging summary
-        all_msgs = self.message_service.repository.get_all_messages()
+        # Messaging summary — load raw data directly from repository
+        raw_repo_data = self.message_service.repository._load_raw_data()
+        all_msgs_raw = raw_repo_data.get("messages", [])
+        from backend.app.models.messages import MessageRecord as MR
+        all_msgs = []
+        for item in all_msgs_raw:
+            try:
+                all_msgs.append(MR(**item))
+            except Exception:
+                continue
         total_msgs = len(all_msgs)
         delivered_count = sum(1 for m in all_msgs if m.status in (MessageStatus.DELIVERED, MessageStatus.DECRYPTED))
         in_transit_count = sum(1 for m in all_msgs if m.status in (MessageStatus.ROUTING, MessageStatus.IN_TRANSIT))

@@ -282,7 +282,7 @@ export const MeshVisualizer: React.FC = () => {
                   Mesh Simulation Engine
                 </h1>
                 <span className="px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-full">
-                  Phase 4 Active
+                  Mesh Relay Engine Active
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-1">

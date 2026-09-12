@@ -238,7 +238,7 @@ export const SecureMessaging: React.FC<SecureMessagingProps> = ({
                 Secure Transmission Console
               </h1>
               <span className="px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full">
-                Phase 5 & 6 Active
+                End-to-End Protection Active
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-1 max-w-3xl leading-relaxed">
@@ -642,7 +642,7 @@ export const SecureMessaging: React.FC<SecureMessagingProps> = ({
                       <span>Access Denied: {decryptionResult.detail || decryptionResult.reason}</span>
                     </div>
                     <p className="text-xs text-red-300 font-sans leading-relaxed">
-                      The Phase 6 Decryption Gate rejected plaintext release because the security verification order failed at: <strong>{decryptionResult.reason}</strong>. Zero plaintext or private keys were leaked.
+                      The Zero-Trust Authorization Gate rejected plaintext release because the security verification failed at: <strong>{decryptionResult.reason}</strong>. Zero plaintext or private keys were leaked.
                     </p>
                   </div>
                 )}

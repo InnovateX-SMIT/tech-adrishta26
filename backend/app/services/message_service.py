@@ -411,10 +411,13 @@ class MessageService:
             recipient_member.device_id
         )
 
+        reg_path_str = str(self.registry_service.registry_path) if getattr(self.registry_service, "registry_path", None) else None
+
         gate_result = process_incoming_packet(
             packet=target_pkt.payload,
             current_receiver_id=recipient_member.device_id,
             receiver_private_key=recipient_priv_key,
+            registry_path=reg_path_str,
         )
 
         if gate_result["status"] == "SUCCESS":
@@ -456,10 +459,13 @@ class MessageService:
             recipient_member.device_id
         )
 
+        reg_path_str = str(self.registry_service.registry_path) if getattr(self.registry_service, "registry_path", None) else None
+
         gate_result = process_incoming_packet(
             packet=payload.model_dump(),
             current_receiver_id=recipient_member.device_id,
             receiver_private_key=recipient_priv_key,
+            registry_path=reg_path_str,
         )
 
         if gate_result["status"] == "SUCCESS":
