@@ -13,7 +13,7 @@ def test_get_system_info_endpoint():
     assert data["mode"] == "development"
     assert data["mesh_enabled"] is False
     assert data["encryption_enabled"] is False
-    assert data["phase"] in [1, 2]
+    assert data["phase"] in [1, 2, 3]
 
 
 def test_system_info_does_not_falsely_claim_security_enabled():

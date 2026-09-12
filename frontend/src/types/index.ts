@@ -45,3 +45,21 @@ export interface MemberStatusResponse {
   status: MemberStatus;
   is_active: boolean;
 }
+
+export interface DeviceCryptoInitResponse {
+  device_id: string;
+  rescue_id: string;
+  signing_public_key: string;
+  encryption_public_key: string;
+  status: string;
+  algorithms: Record<string, string>;
+}
+
+export interface DeviceCryptoStatusResponse {
+  device_id: string;
+  rescue_id: string;
+  is_initialized: boolean;
+  signing_public_key: string | null;
+  encryption_public_key: string | null;
+  algorithms: Record<string, string>;
+}

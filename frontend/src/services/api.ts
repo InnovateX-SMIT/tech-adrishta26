@@ -116,4 +116,14 @@ export const apiService = {
       method: 'POST',
     });
   },
+
+  async initializeDeviceKeys(deviceId: string): Promise<import('../types').DeviceCryptoInitResponse> {
+    return requestWithTimeout<import('../types').DeviceCryptoInitResponse>(`/api/crypto/devices/${encodeURIComponent(deviceId)}/initialize`, {
+      method: 'POST',
+    });
+  },
+
+  async fetchDeviceCryptoStatus(deviceId: string): Promise<import('../types').DeviceCryptoStatusResponse> {
+    return requestWithTimeout<import('../types').DeviceCryptoStatusResponse>(`/api/crypto/devices/${encodeURIComponent(deviceId)}/status`);
+  },
 };

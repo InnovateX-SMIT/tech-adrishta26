@@ -197,6 +197,53 @@ class RegistryService:
 
         return current_member
 
+    def update_member_public_keys(
+        self,
+        device_id: str,
+        signing_public_key: Optional[str],
+        encryption_public_key: Optional[str],
+    ) -> RescueMember:
+        """Validates and updates public keys for a registered device.
+
+        Rejects malformed Base64, incorrect key lengths, or invalid algorithms.
+        """
+        from backend.app.core.crypto import (
+            decode_ed25519_public_key_b64,
+            decode_x25519_public_key_b64,
+        )
+
+        if signing_public_key is not None:
+            # Validates Base64 and exactly 32-byte Ed25519 key
+            decode_ed25519_public_key_b64(signing_public_key)
+
+        if encryption_public_key is not None:
+            # Validates Base64 and exactly 32-byte X25519 key
+            decode_x25519_public_key_b64(encryption_public_key)
+
+        raw_data = self._load_raw_registry()
+        raw_members = raw_data.get("members", [])
+
+        target_index = -1
+        for idx, item in enumerate(raw_members):
+            if item.get("device_id") == device_id:
+                target_index = idx
+                break
+
+        if target_index == -1:
+            raise MemberNotFoundError(f"Device '{device_id}' not found in registry.")
+
+        member_dict = raw_members[target_index]
+        member_dict["signing_public_key"] = signing_public_key
+        member_dict["encryption_public_key"] = encryption_public_key
+
+        updated_member = RescueMember(**member_dict)
+        raw_members[target_index] = updated_member.model_dump()
+        raw_data["members"] = raw_members
+        self._save_raw_registry(raw_data)
+
+        return updated_member
+
 
 # Default service instance using settings.data_dir
 registry_service = RegistryService()
+

@@ -25,6 +25,7 @@ export const App: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [provisioningId, setProvisioningId] = useState<string | null>(null);
 
   const checkBackendHealth = useCallback(async () => {
     setConnectionState('loading');
@@ -133,8 +134,33 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleProvisionKeys = async (member: RescueMember) => {
+    setProvisioningId(member.device_id);
+    setFormError(null);
+    setFormSuccess(null);
+
+    try {
+      const result = await apiService.initializeDeviceKeys(member.device_id);
+      setFormSuccess(
+        `Provisioned keys for ${member.name} (${result.device_id}): Ed25519 signing and X25519 key-agreement initialized.`
+      );
+      await loadMembers();
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setFormError(`Key provisioning failed: ${err.message}`);
+      } else {
+        setFormError('Key provisioning failed.');
+      }
+    } finally {
+      setProvisioningId(null);
+    }
+  };
+
   const activeCount = members.filter((m) => m.status === 'active').length;
   const revokedCount = members.filter((m) => m.status === 'revoked').length;
+  const cryptoInitializedCount = members.filter(
+    (m) => m.signing_public_key && m.encryption_public_key
+  ).length;
 
   return (
     <div className="container">
@@ -154,7 +180,7 @@ export const App: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <span className="phase-tag">Phase 2: Registry Active</span>
+          <span className="phase-tag">Phase 3: Cryptography Active</span>
           <button
             id="refresh-status-btn"
             className="btn-refresh"
@@ -180,10 +206,9 @@ export const App: React.FC = () => {
         </h2>
         <p className="hero-description">
           During infrastructure blackout conditions, rescue teams deploy ad-hoc peer-to-peer mesh relays.
-          Without authentication and cryptographic protection, adversary stations can sniff life-critical
-          transmissions. In Phase 2, RESQ establishes the trusted rescue-team registry and administrative
-          device identifiers that will anchor cryptographic identity, signature verification, and access
-          control in Phase 3.
+          In Phase 3, RESQ anchors the network with cryptographic primitives: Ed25519 digital signatures,
+          X25519 Diffie-Hellman key agreement, HKDF-SHA256 key derivation with per-message random salt,
+          and ChaCha20-Poly1305 authenticated encryption with fresh 12-byte nonces.
         </p>
       </section>
 
@@ -269,31 +294,31 @@ export const App: React.FC = () => {
             <h3 className="card-title">
               <span>Security State</span>
             </h3>
-            <span className="status-pill active">PHASE 2 ACTIVE</span>
+            <span className="status-pill active">PHASE 3 ACTIVE</span>
           </div>
 
           <table className="info-table">
             <tbody>
               <tr>
-                <td className="label-col">Trusted Member Registry</td>
+                <td className="label-col">Cryptographic Engine</td>
                 <td className="val-col" style={{ color: 'var(--accent-emerald)' }}>
-                  ACTIVE (Phase 2)
+                  ACTIVE (Ed25519 &amp; X25519)
                 </td>
               </tr>
               <tr>
-                <td className="label-col">Device Administrative IDs</td>
+                <td className="label-col">Authenticated Cipher</td>
                 <td className="val-col" style={{ color: 'var(--accent-emerald)' }}>
-                  ENABLED (Unique Auto-Generated)
+                  ChaCha20-Poly1305 + HKDF-SHA256
                 </td>
               </tr>
               <tr>
-                <td className="label-col">Cryptographic Key Agreement</td>
-                <td className="val-col">
-                  <span className="val-badge inactive">NOT YET ACTIVE (Phase 3)</span>
+                <td className="label-col">Private-Key Storage</td>
+                <td className="val-col" style={{ color: 'var(--accent-cyan)' }}>
+                  LOCAL (keys/&lt;device_id&gt;/ &bull; PKCS8 PEM)
                 </td>
               </tr>
               <tr>
-                <td className="label-col">Software Mesh Simulation</td>
+                <td className="label-col">Software Mesh Relay</td>
                 <td className="val-col">
                   <span className="val-badge inactive">NOT YET ACTIVE (Phase 4)</span>
                 </td>
@@ -304,31 +329,25 @@ export const App: React.FC = () => {
                   <span className="val-badge inactive">NOT YET ACTIVE (Phase 7)</span>
                 </td>
               </tr>
-              <tr>
-                <td className="label-col">Registry Storage File</td>
-                <td className="val-col" style={{ color: 'var(--accent-cyan)' }}>
-                  data/registry.json (Local JSON)
-                </td>
-              </tr>
             </tbody>
           </table>
 
           <div className="notice-box warning">
-            <strong>Security Boundary Notice:</strong> In Phase 2, &quot;device identity&quot; represents an administrative
-            registry record identified by a unique Device ID. It is not yet cryptographic authentication. Ed25519 signatures
-            and X25519 key agreements are scheduled for Phase 3.
+            <strong>Security Boundary Notice:</strong> Phase 3 implements cryptographic key generation, digital signatures,
+            and ChaCha20-Poly1305 authenticated envelopes. Local private keys are stored on the host filesystem under
+            <code>keys/&lt;device_id&gt;/</code> (development prototype) and are never exposed over APIs or in the browser.
           </div>
         </div>
       </div>
 
-      {/* Phase 2: Registry & Device Identity Management Section */}
+      {/* Phase 2 & 3: Registry & Device Identity Management Section */}
       <section style={{ marginTop: '2.5rem' }}>
         <div style={{ marginBottom: '1.25rem' }}>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>
-            Trusted Rescue-Team Registry &amp; Device Identities
+            Trusted Rescue-Team Registry &amp; Cryptographic Identities
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            Administrative registry for authorized emergency rescue personnel and responder devices.
+            Administrative registry for authorized emergency rescue personnel, device provisioning, and cryptographic keys.
           </p>
         </div>
 
@@ -347,15 +366,15 @@ export const App: React.FC = () => {
           </div>
 
           <div className="stat-box">
-            <span className="stat-label">Revoked Units</span>
-            <span className="stat-value" style={{ color: 'var(--accent-rose)' }}>{revokedCount}</span>
-            <span className="stat-desc">Access suspended</span>
+            <span className="stat-label">Key Provisioned</span>
+            <span className="stat-value" style={{ color: 'var(--accent-cyan)' }}>{cryptoInitializedCount}</span>
+            <span className="stat-desc">Ed25519 &amp; X25519 ready</span>
           </div>
 
           <div className="stat-box">
-            <span className="stat-label">Registry Storage</span>
-            <span className="stat-value" style={{ fontSize: '1.1rem', color: 'var(--accent-cyan)' }}>Local JSON</span>
-            <span className="stat-desc">data/registry.json</span>
+            <span className="stat-label">Revoked Units</span>
+            <span className="stat-value" style={{ color: 'var(--accent-rose)' }}>{revokedCount}</span>
+            <span className="stat-desc">Access suspended</span>
           </div>
         </div>
 
@@ -468,48 +487,66 @@ export const App: React.FC = () => {
                     <th>Role</th>
                     <th>Device ID</th>
                     <th>Status</th>
-                    <th>Public-Key Readiness</th>
+                    <th>Cryptographic Keys</th>
                     <th>Registered (UTC)</th>
-                    <th>Action</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {members.map((m) => (
-                    <tr key={m.rescue_id}>
-                      <td><span className="code-pill">{m.rescue_id}</span></td>
-                      <td style={{ fontWeight: 600 }}>{m.name}</td>
-                      <td>{m.team}</td>
-                      <td style={{ color: 'var(--text-secondary)' }}>{m.role}</td>
-                      <td><span className="code-pill">{m.device_id}</span></td>
-                      <td>
-                        <span className={`status-pill ${m.status}`}>
-                          <span className="dot" />
-                          {m.status.toUpperCase()}
-                        </span>
-                      </td>
-                      <td>
-                        <span className="readiness-pill">Not initialized — Phase 3</span>
-                      </td>
-                      <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                        {m.created_at ? new Date(m.created_at).toLocaleString() : 'N/A'}
-                      </td>
-                      <td>
-                        {m.status === 'active' ? (
-                          <button
-                            className="btn-revoke"
-                            onClick={() => handleRevoke(m)}
-                            disabled={revokingId === m.rescue_id}
-                          >
-                            {revokingId === m.rescue_id ? 'Revoking...' : 'Revoke'}
-                          </button>
-                        ) : (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--accent-rose)', fontStyle: 'italic' }}>
-                            Revoked
+                  {members.map((m) => {
+                    const hasKeys = m.signing_public_key && m.encryption_public_key;
+                    return (
+                      <tr key={m.rescue_id}>
+                        <td><span className="code-pill">{m.rescue_id}</span></td>
+                        <td style={{ fontWeight: 600 }}>{m.name}</td>
+                        <td>{m.team}</td>
+                        <td style={{ color: 'var(--text-secondary)' }}>{m.role}</td>
+                        <td><span className="code-pill">{m.device_id}</span></td>
+                        <td>
+                          <span className={`status-pill ${m.status}`}>
+                            <span className="dot" />
+                            {m.status.toUpperCase()}
                           </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td>
+                          {hasKeys ? (
+                            <span className="status-pill active" title="Ed25519 & X25519 Initialized">
+                              <span className="dot" />
+                              INITIALIZED (Ed25519 / X25519)
+                            </span>
+                          ) : m.status === 'active' ? (
+                            <button
+                              className="btn-provision"
+                              onClick={() => handleProvisionKeys(m)}
+                              disabled={provisioningId === m.device_id}
+                            >
+                              {provisioningId === m.device_id ? 'Provisioning...' : 'Provision Keys'}
+                            </button>
+                          ) : (
+                            <span className="readiness-pill">Not initialized</span>
+                          )}
+                        </td>
+                        <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                          {m.created_at ? new Date(m.created_at).toLocaleString() : 'N/A'}
+                        </td>
+                        <td>
+                          {m.status === 'active' ? (
+                            <button
+                              className="btn-revoke"
+                              onClick={() => handleRevoke(m)}
+                              disabled={revokingId === m.rescue_id || provisioningId === m.device_id}
+                            >
+                              {revokingId === m.rescue_id ? 'Revoking...' : 'Revoke'}
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--accent-rose)', fontStyle: 'italic' }}>
+                              Revoked
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -538,10 +575,10 @@ export const App: React.FC = () => {
             </p>
           </div>
 
-          <div className="phase-card active">
+          <div className="phase-card completed">
             <div className="phase-card-header">
               <span className="phase-num">PHASE 02</span>
-              <span className="phase-status-tag active">ACTIVE PHASE</span>
+              <span className="phase-status-tag completed">COMPLETED</span>
             </div>
             <h4 className="phase-title">Rescue Registry &amp; Device IDs</h4>
             <p className="phase-desc">
@@ -549,14 +586,14 @@ export const App: React.FC = () => {
             </p>
           </div>
 
-          <div className="phase-card">
+          <div className="phase-card active">
             <div className="phase-card-header">
               <span className="phase-num">PHASE 03</span>
-              <span className="phase-status-tag planned">PLANNED</span>
+              <span className="phase-status-tag active">ACTIVE PHASE</span>
             </div>
-            <h4 className="phase-title">Cryptographic Identity &amp; Key Mgmt</h4>
+            <h4 className="phase-title">Cryptographic Security Layer</h4>
             <p className="phase-desc">
-              Ed25519 signing keypairs, X25519 key agreement, and strictly isolated local private-key storage.
+              Ed25519 signing keypairs, X25519 key agreement, HKDF-SHA256, and ChaCha20-Poly1305 authenticated envelopes.
             </p>
           </div>
 
@@ -578,7 +615,7 @@ export const App: React.FC = () => {
             </div>
             <h4 className="phase-title">Secure Message Transmission</h4>
             <p className="phase-desc">
-              Authenticated payload encryption (AES-GCM / ChaCha20-Poly1305) and digital signatures.
+              Authenticated payload encryption and Ed25519 packet signing over mesh topologies.
             </p>
           </div>
 
@@ -641,7 +678,7 @@ export const App: React.FC = () => {
 
       {/* Footer */}
       <footer className="footer">
-        <div>RESQ Security System &bull; Phase 2 Registry Active</div>
+        <div>RESQ Security System &bull; Phase 3 Cryptographic Layer Active</div>
         <div>Software-based Mesh Blackout Resilience Demo</div>
       </footer>
     </div>

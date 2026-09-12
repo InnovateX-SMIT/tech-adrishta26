@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     environment: str = "development"
     backend_host: str = "127.0.0.1"
     backend_port: int = 8000
-    phase: int = 2
-    phase_name: str = "phase-2"
+    phase: int = 3
+    phase_name: str = "phase-3"
     mesh_enabled: bool = False
     encryption_enabled: bool = False
 
@@ -22,8 +22,9 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
     ]
 
-    # Data directory path
+    # Storage paths
     data_dir: Path = Path(__file__).resolve().parent.parent.parent / "data"
+    keys_dir: Path = Path(__file__).resolve().parent.parent.parent / "keys"
 
     @field_validator("cors_origins", mode="before")
     @classmethod
