@@ -1,207 +1,229 @@
-# RESQ — Zero-Trust Emergency Mesh Network & Secure Communication
+# 🛡️ RESQ — Zero-Trust Emergency Mesh Network & Tactical Communication
 
-[![Zero-Trust Security](https://img.shields.io/badge/Security-100%25%20Zero--Trust-10b981?style=flat-square)](docs/architecture.md)
-[![Backend: FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square)](backend/)
-[![Frontend: React + Vite](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-61dafb?style=flat-square)](frontend/)
-[![Cryptography](https://img.shields.io/badge/Cryptography-X25519%20%2B%20ChaCha20--Poly1305%20%2B%20Ed25519-indigo?style=flat-square)](backend/app/services/crypto_service.py)
+[![Zero-Trust Security](https://img.shields.io/badge/Security-Zero--Trust%20Architecture-10b981?style=for-the-badge&logo=shield)](backend/app/services/crypto_service.py)
+[![Backend: FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi)](backend/)
+[![Frontend: React + Vite](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-61dafb?style=for-the-badge&logo=react)](frontend/)
+[![Cryptography](https://img.shields.io/badge/Crypto-X25519%20%7C%20ChaCha20--Poly1305%20%7C%20Ed25519-indigo?style=for-the-badge&logo=lock)](backend/app/services/crypto_service.py)
+[![Test Suite](https://img.shields.io/badge/Automated%20Tests-Passing-success?style=for-the-badge&logo=pytest)](tests/)
 
-> **Problem Statement:**
-> *Unencrypted peer-to-peer mesh networks are vulnerable to packet sniffing and unauthorized interception during blackouts and infrastructure collapse.*
-
----
-
-## Overview
-
-**RESQ** is a high-assurance emergency communication platform designed to protect life-critical transmissions when central communications infrastructure (cellular towers, commercial internet) is down. In disaster situations, rescue personnel must communicate over ad-hoc wireless mesh relays where nodes may be unvetted, compromised, or eavesdropped on.
-
-RESQ solves this through a **Zero-Trust Peer-to-Peer architecture**:
-- Every transmission is cryptographically signed (**Ed25519**) and authenticated-encrypted (**X25519 Ephemeral Key Agreement + HKDF-SHA256 + ChaCha20-Poly1305 AEAD**).
-- Intermediate relay nodes forward encrypted packets without ever being able to read or tamper with the payload.
-- Captured packets reveal **zero plaintext** to eavesdroppers.
-- A **Strict 6-Step Decryption Gate** guarantees that only verified, active, and authorized recipients can decrypt emergency communications.
+> **Executive Summary for Judges:**  
+> When blackouts, earthquakes, or conflicts take down cellular towers and internet backbones, first responders rely on ad-hoc wireless mesh relays. However, **traditional mesh networks broadcast plain unencrypted packets**, leaving life-critical coordinates and rescue plans vulnerable to sniffing, spoofing, and tampering.  
+> **RESQ solves this with a military-grade Zero-Trust Mesh Architecture**: guaranteed **Zero Plaintext on the Wire**, authenticated sender identities via **Ed25519**, ephemeral forward secrecy via **X25519 ECDH + ChaCha20-Poly1305**, and a **Strict 6-Step Receiver Decryption Gate**.
 
 ---
 
-## Contrast Demonstration: Vulnerable vs Protected Mode
-
-RESQ features a built-in attack simulation to directly demonstrate the difference between legacy unencrypted mesh networks and the RESQ Zero-Trust architecture:
-
-| Capability | Legacy Unencrypted Mesh (Mode A) | RESQ Zero-Trust Mesh (Mode B) |
-| :--- | :--- | :--- |
-| **Transmission** | Plaintext transmitted over mesh relays | Authenticated X25519 + ChaCha20-Poly1305 AEAD |
-| **Packet Sniffing** | ⚠️ **Critical Vulnerability**: Attacker captures packet and reads emergency message directly | 🛡️ **Protected**: Attacker captures wire packet but sees **only high-entropy ciphertext** |
-| **Identity Verification** | None (spoofable sender fields) | RFC 8785 Canonical JSON signed with Ed25519 private keys |
-| **Tampering Resistance** | None (packets can be altered in transit undetected) | Rejected at receiver gate (AEAD authentication tag / Ed25519 signature failure) |
-| **Replay Defense** | Vulnerable to replayed distress calls | Blocked via unique `packet_id` tracking and timestamp drift limits |
-| **Revocation Enforcement** | None | Real-time registry check blocks revoked responder keys instantly |
-
-> *"The goal is not to prevent packet capture. In a broadcast wireless medium, packet capture is inevitable. The goal is to ensure that capturing a packet reveals zero plaintext."*
+## 📌 Table of Contents
+- [🚨 The Problem & The Solution](#-the-problem--the-solution)
+- [⚔️ Live Contrast Mode: Before vs After RESQ](#️-live-contrast-mode-before-vs-after-resq)
+- [🖥️ Interactive System Walkthrough](#️-interactive-system-walkthrough)
+  - [1. Mesh Simulation Engine](#1-mesh-simulation-engine)
+  - [2. Secure Transmission Console](#2-secure-transmission-console)
+  - [3. Trusted Rescue-Team Registry](#3-trusted-rescue-team-registry)
+- [🛡️ The 6-Step Decryption Gate](#️-the-6-step-decryption-gate)
+- [⚙️ Tech Stack & Cryptography Standards](#️-tech-stack--cryptography-standards)
+- [🚀 Quick Start Guide (Run in 2 Minutes)](#-quick-start-guide-run-in-2-minutes)
+- [🧪 Automated Verification & Test Suite](#-automated-verification--test-suite)
 
 ---
 
-## Core System Architecture
+## 🚨 The Problem & The Solution
 
-### 1. Cryptographic Security Engine
-- **Asymmetric Signing**: Ed25519 keypairs for verifiable sender identity.
-- **Key Agreement**: Ephemeral X25519 ECDH key exchange generates fresh, unrepeatable shared secrets per transmission.
-- **Key Derivation**: HKDF-SHA256 with 16-byte random salts derives 256-bit symmetric encryption keys.
-- **Symmetric AEAD**: ChaCha20-Poly1305 with random 12-byte nonces provides authenticated encryption with integrity protection.
-- **Canonical Serialization**: RFC 8785 canonical JSON formatting prevents signature malleability.
-- **Wire Encoding**: Uniform Base64 standard for all keys, salts, nonces, ciphertexts, and digital signatures.
+| The Disaster Reality (Problem) | The RESQ Innovation (Solution) |
+| :--- | :--- |
+| **No Central Infrastructure:** Cellular and fiber networks are completely offline during disasters. Responders must use wireless peer-to-peer radio/Wi-Fi hops. | **Autonomous Dynamic Mesh:** Multi-hop BFS routing that dynamically routes packets through peer devices with TTL and outage resilience. |
+| **Airwave Packet Sniffing:** Radio waves are broadcast in open air. Any nearby bad actor with cheap SDR/Wi-Fi hardware captures all transmitted packets. | **Zero Plaintext Wire Exposure:** Payloads are encrypted *before* entering the mesh. Captured packets reveal only high-entropy, unintelligible ciphertext. |
+| **Impersonation & Rogue Relays:** Attackers can inject false coordinates, alter evacuation routes, or replay old distress calls. | **Cryptographic Identity & 6-Step Gate:** Every packet is signed with **Ed25519**, verified against a hardware registry, and checked for replays before decryption. |
 
-### 2. Multi-Hop Software Mesh Simulation
-- Dynamic peer-to-peer network graph with BFS shortest-path routing.
-- Packet relay with configurable TTL (Time-To-Live) and hop limit enforcement.
-- Node outage resilience: disable relays on the fly and verify rerouting around dead zones.
-- Attacker taps: passive sniffing nodes capture passing packets for real-time security auditing.
+---
 
-### 3. Strict 6-Step Decryption Gate
-Plaintext is released **only** when all six verification gates pass:
+## ⚔️ Live Contrast Mode: Before vs After RESQ
+
+RESQ features a built-in **Side-by-Side Attack Simulator** that proves the security model live in front of the judges.
+
+### ❌ 1. Before RESQ — Vulnerable Mode (Legacy Unencrypted Mesh)
+*In standard mesh protocols, messages travel in cleartext over untrusted relays. An eavesdropper sniffs the airwaves and reads life-critical distress data immediately.*
+
+<p align="center">
+  <img src="assets/screenshots/vulnerable.jpg" alt="Vulnerable Mode Selection" width="100%" />
+</p>
+<p align="center">
+  <img src="assets/screenshots/vulnerable1.jpg" alt="Vulnerable Mode Sniffer Interception" width="100%" />
+</p>
+
+- **Attacker Sniffer Panel:** Intercepts packet `PKT-VULN-0530153F` and directly reads:  
+  `"SOS: Three people are trapped in Building B. Immediate evacuation required."`
+- **Result:** ⚠️ **CRITICAL LEAK** — Target location and team identity exposed to adversaries.
+
+---
+
+### 🛡️ 2. After RESQ — Protected Mode (Zero-Trust Cryptographic Mesh)
+*Every dispatch undergoes ephemeral X25519 key exchange, HKDF key derivation, ChaCha20-Poly1305 AEAD encryption, and Ed25519 signing before hitting the mesh.*
+
+<p align="center">
+  <img src="assets/screenshots/resq.jpg" alt="Protected Mode Selection" width="100%" />
+</p>
+<p align="center">
+  <img src="assets/screenshots/resq2.jpg" alt="Protected Mode Ciphertext Interception & Receiver Decryption" width="100%" />
+</p>
+
+- **Attacker Sniffer Panel:** Captured packet displays **pure encrypted ciphertext** (`QsS/Tat2SCYQTx...`). Attacker cannot read a single character of the message.
+- **Active Tamper Defense:** Clicking *"Test Tampering Defense (Alter 1 Byte)"* instantly invalidates the Poly1305 AEAD authentication tag and Ed25519 signature, causing the receiver gate to reject the packet.
+- **Authorized Receiver Panel:** Only the verified keyholder (`RESQ-002`) successfully passes all 6 validation gates and decrypts the plaintext.
+
+---
+
+## 🖥️ Interactive System Walkthrough
+
+### 1. Mesh Simulation Engine
+Simulates a multi-hop ad-hoc wireless mesh topology with dynamic node states, link outages, and packet path tracing.
+
+<p align="center">
+  <img src="assets/screenshots/mesh.jpg" alt="Mesh Simulation Engine" width="100%" />
+</p>
+
+- **Visual Canvas:** Real-time visual graph rendering relays (`NODE-A` through `NODE-E`) and active links.
+- **BFS Shortest-Path Routing:** Automatically calculates optimal multi-hop transit routes with hop-by-hop forwarding and TTL counters.
+- **Fault Injection & Outage Resilience:** Click any node to simulate hardware failure or battery depletion; mesh dynamically computes alternative paths.
+- **Passive Sniffer Tap:** Shows real-time eavesdropping points monitoring passing traffic.
+
+---
+
+### 2. Secure Transmission Console
+The command dashboard for field commanders and responders to dispatch distress signals and inspect wire packets.
+
+<p align="center">
+  <img src="assets/screenshots/transmission%20control.jpg" alt="Secure Transmission Console" width="100%" />
+</p>
+
+- **Authenticated Dispatcher:** Cryptographically signs dispatches with the sender’s private key (`Ed25519`) and encrypts targeting the recipient’s public key (`X25519`).
+- **Wire Packet Inspector:** Inspects raw packets passing through transit nodes, confirming **Zero Plaintext on Wire**.
+- **Recipient Device Inbox & Gate Inspector:** Live step-by-step verification readout showing the status of each security checkpoint upon packet arrival.
+
+---
+
+### 3. Trusted Rescue-Team Registry
+The public-key infrastructure (PKI) and cryptographic device authority.
+
+<p align="center">
+  <img src="assets/screenshots/dataregistry.jpg" alt="Trusted Rescue Team Registry" width="100%" />
+</p>
+
+- **Responder Enrollment:** Onboard field units with auto-generated unique `Rescue ID` (e.g., `RESQ-001`) and hardware `Device ID`.
+- **Cryptographic Key Provisioning:** Generates and associates public signing (`Ed25519`) and encryption (`X25519`) keys.
+- **Instant Revocation:** Compromised or captured devices can be revoked in one click. Revoked nodes are instantly blocked by the decryption gate across the entire network.
+
+---
+
+## 🛡️ The 6-Step Decryption Gate
+
+In RESQ, receiving a packet **never** automatically exposes data. A packet must pass six sequential cryptographic gates before the receiver's hardware decrypts the emergency payload:
+
 ```
-[ Incoming Packet ]
-       │
-       ▼
- 1. Sender Registry Lookup       ──(Unknown Sender)──► [ REJECT ]
-       │
-       ▼
- 2. Sender Status Validation     ──(Revoked Member)──► [ REJECT ]
-       │
-       ▼
- 3. Ed25519 Signature Check      ──(Tampered Wire)───► [ REJECT ]
-       │
-       ▼
- 4. Recipient Authorization      ──(Wrong Node)──────► [ REJECT ]
-       │
-       ▼
- 5. Replay Attack Prevention     ──(Duplicate ID)────► [ REJECT ]
-       │
-       ▼
- 6. ChaCha20-Poly1305 Decrypt    ──(Corrupt AEAD)────► [ REJECT ]
-       │
-       ▼
-[ Plaintext Released to Recipient ]
+                  ┌──────────────────────────────┐
+                  │   Incoming Mesh Wire Packet   │
+                  └──────────────┬───────────────┘
+                                 │
+                                 ▼
+         ┌────────────────────────────────────────────────┐
+         │ Gate 1: Sender Registry Lookup                 │──► [Fail: Unknown ID]   ──► REJECT
+         └───────────────────────┬────────────────────────┘
+                                 │ Pass
+                                 ▼
+         ┌────────────────────────────────────────────────┐
+         │ Gate 2: Sender Status Validation               │──► [Fail: Revoked Unit] ──► REJECT
+         └───────────────────────┬────────────────────────┘
+                                 │ Pass
+                                 ▼
+         ┌────────────────────────────────────────────────┐
+         │ Gate 3: RFC 8785 Ed25519 Signature Check       │──► [Fail: Tampered Wire]──► REJECT
+         └───────────────────────┬────────────────────────┘
+                                 │ Pass
+                                 ▼
+         ┌────────────────────────────────────────────────┐
+         │ Gate 4: Recipient Hardware Authorization       │──► [Fail: Wrong Target] ──► REJECT
+         └───────────────────────┬────────────────────────┘
+                                 │ Pass
+                                 ▼
+         ┌────────────────────────────────────────────────┐
+         │ Gate 5: Replay Attack Defense (Packet ID/TTL)  │──► [Fail: Duplicate ID] ──► REJECT
+         └───────────────────────┬────────────────────────┘
+                                 │ Pass
+                                 ▼
+         ┌────────────────────────────────────────────────┐
+         │ Gate 6: ChaCha20-Poly1305 AEAD Decryption      │──► [Fail: Corrupt Tag]  ──► REJECT
+         └───────────────────────┬────────────────────────┘
+                                 │ Pass
+                                 ▼
+                  ┌──────────────────────────────┐
+                  │ Plaintext Released to Unit   │
+                  └──────────────────────────────┘
 ```
 
 ---
 
-## Tactical Operations Dashboard (Frontend)
+## ⚙️ Tech Stack & Cryptography Standards
 
-The frontend is a dark-mode, tactical web application built with **React**, **Vite**, **TypeScript**, and **Tailwind CSS**:
+### Frontend
+- **Framework:** React 18 + Vite + TypeScript
+- **Styling & UI:** Tailwind CSS (Dark tactical theme with cyber-ops telemetry styling)
+- **Icons & Visuals:** Lucide React + HTML5 Interactive Canvas
 
-1. **Mesh Simulation**:
-   - Interactive canvas visualizer of topology relays, links, and hops.
-   - Node status toggling (simulate relay outage / offline state).
-   - Real-time path tracing from source to destination.
+### Backend
+- **Framework:** FastAPI (Python 3.10+)
+- **Validation:** Pydantic v2 schemas
+- **Architecture:** Modular clean architecture (Routers, Services, Repositories, Domain models)
 
-2. **Secure Transmit**:
-   - Emergency message composer with responder identity selector.
-   - Live wire-packet payload inspector (headers, cryptographic fields, signatures).
-   - Recipient inbox with interactive **6-Step Gate verification breakdown**.
-
-3. **Attack Simulation & Contrast Mode**:
-   - Side-by-side execution: **Vulnerable (Cleartext)** vs **Protected (Encrypted)**.
-   - Eavesdropper packet sniffer log displaying intercepted packets in real time.
-   - Active tamper testing: mutate captured bytes and prove receiver gate rejection.
-
-4. **Device Registry**:
-   - Responder management (Name, Team, Role, Rescue ID, Device ID).
-   - On-demand cryptographic keypair provisioning.
-   - Instant access revocation for compromised devices.
+### Cryptographic Primitives
+- **Digital Signatures:** `Ed25519` (RFC 8032) for high-speed, collision-resistant message authenticity.
+- **Key Exchange:** Ephemeral `X25519` (ECDH) ensuring Perfect Forward Secrecy per packet.
+- **Key Derivation:** `HKDF-SHA256` with 16-byte random salts.
+- **Authenticated Encryption:** `ChaCha20-Poly1305` (AEAD, RFC 8439) with random 12-byte nonces.
+- **Canonical Serialization:** `RFC 8785` (JSON Canonicalization Scheme) to ensure immutable signature hashing.
 
 ---
 
-## REST API Reference
-
-### 🔒 Messaging & Decryption Gate
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/messages/send` | Sign, encrypt (X25519 + ChaCha20), and route message across mesh |
-| `GET` | `/api/messages/inbox/{recipient_id}` | List encrypted packets waiting in recipient inbox |
-| `POST` | `/api/messages/decrypt` | Authorize and decrypt emergency message (6-step gate) |
-| `GET` | `/api/messages/{message_id}/status` | Track multi-hop delivery and decryption status |
-
-### 🎯 Attack Simulation (Contrast Mode)
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/attack/simulate` | Run vulnerable vs protected transmission simulation |
-| `GET` | `/api/attack/captures` | List all packets intercepted by the passive sniffer |
-| `GET` | `/api/attack/captures/{capture_id}` | Retrieve detailed captured packet breakdown |
-| `POST` | `/api/attack/captures/{id}/tamper` | Mutate captured payload and test receiver rejection |
-| `GET` | `/api/attack/status` | Get real-time attack simulation metrics |
-| `DELETE`| `/api/attack/reset` | Clear simulation history and captures |
-
-### 📊 Dashboard & Telemetry
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/dashboard/overview` | Unified real-time telemetry, mesh state, and security status |
-| `POST` | `/api/dashboard/quick-dispatch` | Atomic dispatch with immediate sniffer and gate evaluation |
-
-### 👥 Registry & Cryptographic Identity
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/registry/members` | List all registered rescue personnel |
-| `POST` | `/api/registry/members` | Enroll responder with auto-generated Rescue & Device IDs |
-| `GET` | `/api/registry/members/{rescue_id}` | Lookup member by Rescue ID |
-| `POST` | `/api/registry/members/{rescue_id}/revoke` | Revoke member credentials |
-| `POST` | `/api/crypto/devices/{device_id}/initialize` | Provision Ed25519 & X25519 keypairs |
-| `GET` | `/api/crypto/devices/{device_id}/status` | Check cryptographic key provisioning status |
-
-### 🌐 Mesh Simulation
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/mesh/topology` | Fetch current mesh nodes, edges, and statuses |
-| `POST` | `/api/mesh/demo` | Provision standard 5-node demo topology |
-| `GET` | `/api/mesh/routes/{src}/{dst}` | Compute shortest path route via BFS |
-| `PATCH`| `/api/mesh/nodes/{node_id}` | Toggle node online/offline or relay status |
-| `GET` | `/api/mesh/node/{id}/inbox` | View node-specific packet reception queue |
-| `DELETE`| `/api/mesh/reset` | Reset mesh topology to default state |
-
----
-
-## Quick Start & Running Locally
+## 🚀 Quick Start Guide (Run in 2 Minutes)
 
 ### Prerequisites
-- **Python 3.10+** (with `fastapi`, `uvicorn`, `cryptography`, `pydantic`)
-- **Node.js 18+** & **npm**
+- **Python 3.10+**
+- **Node.js 18+ & npm**
 
-### 1. Run the Backend API
-From the root directory:
+### 1. Start Backend API
 ```bash
-# Start FastAPI backend with hot-reload
+# From repository root:
 uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-Interactive Swagger / OpenAPI docs are available at **http://127.0.0.1:8000/docs**.
+*API Swagger documentation will be available at:* **`http://127.0.0.1:8000/docs`**
 
-### 2. Run the Frontend Application
-In a separate terminal:
+### 2. Start Tactical Frontend
 ```bash
+# In a new terminal window:
 cd frontend
 npm install
 npm run dev
 ```
-Open **http://localhost:5173** to access the tactical operations interface.
+*Open your browser at:* **`http://localhost:5173`**
 
-### 3. Run Verification Scripts
-Standalone CLI scripts demonstrate end-to-end proofs without external dependencies:
+---
+
+## 🧪 Automated Verification & Test Suite
+
+Run the standalone verification scripts and automated tests to evaluate correctness without opening the browser:
 
 ```bash
-# Run End-to-End Encryption & 6-Step Gate Verification
+# 1. Run End-to-End Encryption & 6-Step Gate Verification
 python3 verify_phase6.py
 
-# Run Packet Sniffing & Attack Simulation Verification
+# 2. Run Packet Sniffing & Attack Simulation Verification
 python3 verify_phase7.py
-```
 
-### 4. Run Automated Tests
-```bash
+# 3. Run Full Automated Test Suite (Pytest)
 pytest tests/ -v
 ```
 
 ---
 
-## Security Audit & Compliance
-
-- **Zero Plaintext Wire Exposure**: All emergency payload data is encrypted prior to entering the mesh network layer.
-- **Ephemeral Forward Secrecy**: Fresh ephemeral X25519 keys prevent historic traffic decryption if static keys are compromised.
-- **Collision-Resistant Canonicalization**: RFC 8785 canonical JSON ensures deterministic byte-level representation before signature computation.
-- **Graceful Failure**: Rejection at any step in the decryption gate triggers immediate drop without disclosing underlying cryptographic states.
+<p align="center">
+  <b>Built for Tech Adrishta 2026</b><br>
+  <i>Mission-Critical • Zero-Trust • Tamper-Proof</i>
+</p>
