@@ -1,6 +1,6 @@
 """
 Quick sanity check script — runs core mesh logic without pytest overhead.
-Execute: python verify_phase4.py from d:\TechAdrista
+Execute: python3 verify_phase4.py
 """
 
 import sys

@@ -38,8 +38,37 @@ class MeshPacket:
     """
 
     packet_id: str
-    sender_id: str
-    receiver_id: str
-    payload: Any
+    sender_id: str = ""
+    receiver_id: str = ""
+    payload: Any = None
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     hop_log: list[HopRecord] = field(default_factory=list)
+
+    def __init__(
+        self,
+        packet_id: str,
+        sender_id: str = "",
+        receiver_id: str = "",
+        payload: Any = None,
+        created_at: Any = None,
+        hop_log: Any = None,
+        *,
+        source: Any = None,
+        destination: Any = None,
+    ) -> None:
+        self.packet_id = packet_id
+        self.sender_id = sender_id or source or ""
+        self.receiver_id = receiver_id or destination or ""
+        self.payload = payload
+        self.created_at = created_at or datetime.now(timezone.utc).isoformat()
+        self.hop_log = hop_log if hop_log is not None else []
+
+    @property
+    def source(self) -> str:
+        """Alias for sender_id (Phase 4 requirement compliance)."""
+        return self.sender_id
+
+    @property
+    def destination(self) -> str:
+        """Alias for receiver_id (Phase 4 requirement compliance)."""
+        return self.receiver_id

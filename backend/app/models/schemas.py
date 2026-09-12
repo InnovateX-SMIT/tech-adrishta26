@@ -70,3 +70,30 @@ class CapturedPacketsResponse(BaseModel):
 
     node_id: str = Field(..., examples=["ATTACKER"])
     captured: list[PacketResponse] = Field(default_factory=list)
+
+
+class AddNodeRequest(BaseModel):
+    """Request body for POST /api/mesh/nodes."""
+
+    node_id: str = Field(..., min_length=1, examples=["DEVICE-001"])
+    is_attacker: bool = Field(False, examples=[False])
+
+
+class ConnectNodesRequest(BaseModel):
+    """Request body for POST /api/mesh/connect and POST /api/mesh/disconnect."""
+
+    node_a: str = Field(..., min_length=1, examples=["DEVICE-001"])
+    node_b: str = Field(..., min_length=1, examples=["DEVICE-002"])
+
+
+class DeliveryLogSchema(BaseModel):
+    """Routing and delivery audit log entry."""
+
+    packet_id: str = Field(..., examples=["pkt-001"])
+    source: str = Field(..., examples=["DEVICE-001"])
+    destination: str = Field(..., examples=["DEVICE-004"])
+    route: list[str] = Field(default_factory=list, examples=[["DEVICE-001", "DEVICE-002", "DEVICE-004"]])
+    hops: list[HopRecordSchema] = Field(default_factory=list)
+    status: str = Field(..., examples=["delivered"])
+    error: str | None = Field(None, examples=[None])
+    timestamp: str = Field(..., examples=["2026-09-12T07:49:07.000000+00:00"])

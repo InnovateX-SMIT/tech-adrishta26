@@ -19,9 +19,13 @@ import uuid
 from fastapi import APIRouter, HTTPException
 
 from backend.app.core.mesh_network import NoRouteError
+from backend.app.core.mesh_node import MeshNode
 from backend.app.core.mesh_packet import MeshPacket
 from backend.app.models.schemas import (
+    AddNodeRequest,
     CapturedPacketsResponse,
+    ConnectNodesRequest,
+    DeliveryLogSchema,
     HopRecordSchema,
     NodeInfo,
     PacketResponse,
@@ -72,11 +76,11 @@ def _packet_to_response(packet: MeshPacket, status: str = "delivered") -> Packet
     summary="Build demo network",
     description=(
         "Reset the shared mesh network and construct the standard 5-node Phase 4 "
-        "demo topology (NODE-A through NODE-E plus one passive ATTACKER node)."
+        "demo topology (supports either NODE-A..E or Phase 2 DEVICE-001..005)."
     ),
 )
-async def build_demo() -> dict:
-    net = build_demo_network()
+async def build_demo(use_device_ids: bool = False) -> dict:
+    net = build_demo_network(use_device_ids=use_device_ids)
     topo = net.get_topology()
     return {
         "message": "Demo network built successfully.",
@@ -189,3 +193,129 @@ async def get_captured(node_id: str) -> CapturedPacketsResponse:
 async def reset() -> dict:
     reset_network()
     return {"message": "Mesh network has been reset."}
+
+
+@router.get(
+    "/nodes",
+    response_model=list[NodeInfo],
+    summary="List all nodes",
+    description="Return a list of all currently registered nodes in the mesh.",
+)
+async def list_nodes() -> list[NodeInfo]:
+    net = get_network()
+    return [
+        NodeInfo(
+            node_id=n.node_id,
+            neighbors=sorted(n.neighbors),
+            is_attacker=n.is_attacker,
+        )
+        for n in net.nodes.values()
+    ]
+
+
+@router.post(
+    "/nodes",
+    response_model=NodeInfo,
+    status_code=201,
+    summary="Register a new node",
+    description="Add a simulated rescue node to the mesh network.",
+)
+async def add_node(body: AddNodeRequest) -> NodeInfo:
+    net = get_network()
+    if body.node_id in net.nodes:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Node {body.node_id!r} is already registered in the mesh.",
+        )
+    node = MeshNode(node_id=body.node_id, is_attacker=body.is_attacker)
+    net.add_node(node)
+    return NodeInfo(
+        node_id=node.node_id,
+        neighbors=sorted(node.neighbors),
+        is_attacker=node.is_attacker,
+    )
+
+
+@router.delete(
+    "/nodes/{node_id}",
+    summary="Remove a node",
+    description="Remove a node from the mesh and cleanly disconnect all its edges.",
+)
+async def remove_node(node_id: str) -> dict:
+    net = get_network()
+    try:
+        net.remove_node(node_id)
+        return {"message": f"Node {node_id!r} removed successfully."}
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post(
+    "/connect",
+    summary="Connect two nodes",
+    description="Create a bidirectional edge between two registered nodes.",
+)
+async def connect_nodes(body: ConnectNodesRequest) -> dict:
+    net = get_network()
+    try:
+        net.connect_nodes(body.node_a, body.node_b)
+        return {
+            "message": f"Connected {body.node_a!r} and {body.node_b!r} successfully.",
+            "edge": sorted([body.node_a, body.node_b]),
+        }
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Cannot connect nodes: {exc}",
+        ) from exc
+
+
+@router.post(
+    "/disconnect",
+    summary="Disconnect two nodes",
+    description="Remove the bidirectional edge between two registered nodes.",
+)
+async def disconnect_nodes(body: ConnectNodesRequest) -> dict:
+    net = get_network()
+    try:
+        net.disconnect_nodes(body.node_a, body.node_b)
+        return {
+            "message": f"Disconnected {body.node_a!r} and {body.node_b!r} successfully.",
+            "edge": sorted([body.node_a, body.node_b]),
+        }
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Cannot disconnect nodes: {exc}",
+        ) from exc
+
+
+@router.get(
+    "/logs",
+    response_model=list[DeliveryLogSchema],
+    summary="Delivery & routing logs",
+    description="Return the ordered audit trail of all packet delivery attempts across the mesh.",
+)
+async def get_logs() -> list[DeliveryLogSchema]:
+    net = get_network()
+    return [
+        DeliveryLogSchema(
+            packet_id=log.packet_id,
+            source=log.source,
+            destination=log.destination,
+            route=log.route,
+            hops=[
+                HopRecordSchema(
+                    hop_number=h.hop_number,
+                    from_node=h.from_node,
+                    to_node=h.to_node,
+                    timestamp=h.timestamp,
+                )
+                for h in log.hops
+            ],
+            status=log.status,
+            error=log.error,
+            timestamp=log.timestamp,
+        )
+        for log in net.get_delivery_logs()
+    ]

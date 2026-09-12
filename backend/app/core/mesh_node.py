@@ -29,12 +29,27 @@ class MeshNode:
                            traffic that passes through this node's edges.
     """
 
-    def __init__(self, node_id: str, is_attacker: bool = False) -> None:
-        self.node_id: str = node_id
+    def __init__(
+        self,
+        node_id: str | None = None,
+        is_attacker: bool = False,
+        *,
+        device_id: str | None = None,
+    ) -> None:
+        effective_id = node_id or device_id
+        if not effective_id:
+            raise ValueError("node_id or device_id must be provided.")
+        self.node_id: str = effective_id
         self.neighbors: set[str] = set()
         self.inbox: list[MeshPacket] = []
+        self.seen_packet_ids: set[str] = set()
         self.captured_packets: list[MeshPacket] = []
         self.is_attacker: bool = is_attacker
+
+    @property
+    def device_id(self) -> str:
+        """Alias for node_id adhering to Phase 2 device naming conventions."""
+        return self.node_id
 
     # ------------------------------------------------------------------
     # Connectivity helpers (called by MeshNetwork, not directly by users)
@@ -49,12 +64,26 @@ class MeshNode:
         self.neighbors.discard(node_id)
 
     # ------------------------------------------------------------------
-    # Packet reception
+    # Packet transmission and reception
     # ------------------------------------------------------------------
 
-    def receive_packet(self, packet: MeshPacket) -> None:
-        """Accept a delivered packet into this node's inbox."""
+    def send_packet(self, packet: MeshPacket, network: Any) -> MeshPacket:
+        """Originate and send a packet from this node through the provided network."""
+        if not packet.sender_id:
+            packet.sender_id = self.node_id
+        return network.send_packet(packet)
+
+    def receive_packet(self, packet: MeshPacket) -> bool:
+        """Accept a delivered packet into this node's inbox.
+        
+        Performs duplicate suppression based on packet_id.
+        Returns True if accepted, False if ignored as duplicate.
+        """
+        if packet.packet_id in self.seen_packet_ids:
+            return False
+        self.seen_packet_ids.add(packet.packet_id)
         self.inbox.append(packet)
+        return True
 
     def capture_packet(self, packet: MeshPacket) -> None:
         """

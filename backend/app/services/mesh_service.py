@@ -41,29 +41,36 @@ def reset_network() -> None:
     _network.reset()
 
 
-def build_demo_network() -> MeshNetwork:
+def build_demo_network(use_device_ids: bool = False) -> MeshNetwork:
     """
     Construct the standard 5-node Phase 4 demo topology and return it.
 
-    Nodes:
-        NODE-A  — normal
-        NODE-B  — normal (central hub)
-        NODE-C  — normal
-        NODE-D  — normal
-        NODE-E  — normal (destination in demo sends)
-        ATTACKER — passive sniffer connected to NODE-B and NODE-C
-
-    Edges:
-        NODE-A  ↔ NODE-B
-        NODE-B  ↔ NODE-C
-        NODE-B  ↔ NODE-D
-        NODE-C  ↔ NODE-E
-        ATTACKER ↔ NODE-B   (sniffs NODE-A→…→NODE-E traffic)
-        ATTACKER ↔ NODE-C
-
-    Returns the populated (shared) MeshNetwork instance.
+    If use_device_ids is True, uses Phase 2 naming convention:
+        DEVICE-001 through DEVICE-005 + ATTACKER
+    Otherwise uses default:
+        NODE-A through NODE-E + ATTACKER
     """
     reset_network()
+
+    if use_device_ids:
+        nodes = [
+            MeshNode("DEVICE-001"),
+            MeshNode("DEVICE-002"),
+            MeshNode("DEVICE-003"),
+            MeshNode("DEVICE-004"),
+            MeshNode("DEVICE-005"),
+            MeshNode("ATTACKER", is_attacker=True),
+        ]
+        for node in nodes:
+            _network.add_node(node)
+
+        _network.connect_nodes("DEVICE-001", "DEVICE-002")
+        _network.connect_nodes("DEVICE-002", "DEVICE-003")
+        _network.connect_nodes("DEVICE-002", "DEVICE-004")
+        _network.connect_nodes("DEVICE-003", "DEVICE-005")
+        _network.connect_nodes("ATTACKER", "DEVICE-002")
+        _network.connect_nodes("ATTACKER", "DEVICE-003")
+        return _network
 
     node_a = MeshNode("NODE-A")
     node_b = MeshNode("NODE-B")
