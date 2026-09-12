@@ -71,7 +71,7 @@ async def get_member_status(rescue_id: str) -> MemberStatusResponse:
     return MemberStatusResponse(
         rescue_id=member.rescue_id,
         status=member.status,
-        is_active=(member.status.value == "active"),
+        is_active=registry_service.is_member_active(rescue_id),
     )
 
 

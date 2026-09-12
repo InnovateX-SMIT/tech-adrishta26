@@ -207,8 +207,16 @@ class CryptoService:
         target_dir = self._get_device_dir(device_id)
         try:
             target_dir.mkdir(parents=True, exist_ok=True)
-            os.replace(staging_dir / "signing_private.pem", target_dir / "signing_private.pem")
-            os.replace(staging_dir / "encryption_private.pem", target_dir / "encryption_private.pem")
+            sign_target = target_dir / "signing_private.pem"
+            enc_target = target_dir / "encryption_private.pem"
+            os.replace(staging_dir / "signing_private.pem", sign_target)
+            os.replace(staging_dir / "encryption_private.pem", enc_target)
+            try:
+                os.chmod(target_dir, 0o700)
+                os.chmod(sign_target, 0o600)
+                os.chmod(enc_target, 0o600)
+            except OSError:
+                pass
             shutil.rmtree(staging_dir, ignore_errors=True)
         except Exception as exc:
             # Staging finalization failed: perform exact rollback of registry

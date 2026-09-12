@@ -43,6 +43,8 @@ class MeshPacket:
     payload: Any = None
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     hop_log: list[HopRecord] = field(default_factory=list)
+    ttl: int = 10
+    status: str = "created"
 
     def __init__(
         self,
@@ -52,6 +54,8 @@ class MeshPacket:
         payload: Any = None,
         created_at: Any = None,
         hop_log: Any = None,
+        ttl: int = 10,
+        status: str = "created",
         *,
         source: Any = None,
         destination: Any = None,
@@ -62,6 +66,8 @@ class MeshPacket:
         self.payload = payload
         self.created_at = created_at or datetime.now(timezone.utc).isoformat()
         self.hop_log = hop_log if hop_log is not None else []
+        self.ttl = ttl
+        self.status = status
 
     @property
     def source(self) -> str:

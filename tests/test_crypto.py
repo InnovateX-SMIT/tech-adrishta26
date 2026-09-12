@@ -466,6 +466,7 @@ def test_staging_rollback_restores_original_state():
 
 
 def test_isolation_keys_created_in_tmp_path(isolate_crypto_and_registry: Path):
+    assert crypto_service.keys_dir == isolate_crypto_and_registry / "keys"
     reg_resp = client.post(
         "/api/registry/members",
         json={"name": "Isolated Device", "team": "Alpha", "role": "Scout"},
@@ -477,7 +478,3 @@ def test_isolation_keys_created_in_tmp_path(isolate_crypto_and_registry: Path):
     key_dir = isolate_crypto_and_registry / "keys" / dev_id
     assert (key_dir / "signing_private.pem").is_file()
     assert (key_dir / "encryption_private.pem").is_file()
-
-    # Assert real workspace keys dir is not polluted
-    real_device_dir = Path("keys") / dev_id
-    assert not real_device_dir.exists()

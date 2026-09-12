@@ -28,6 +28,26 @@ class NodeInfo(BaseModel):
     node_id: str = Field(..., examples=["NODE-A"])
     neighbors: list[str] = Field(default_factory=list, examples=[["NODE-B"]])
     is_attacker: bool = Field(False, examples=[False])
+    is_online: bool = Field(True, examples=[True])
+    is_available_for_relay: bool = Field(True, examples=[True])
+
+
+class UpdateNodeStateRequest(BaseModel):
+    """Request body for PATCH /api/mesh/nodes/{node_id}."""
+
+    is_online: bool | None = Field(None, examples=[True])
+    is_available_for_relay: bool | None = Field(None, examples=[True])
+
+
+class RouteDiscoveryResponse(BaseModel):
+    """Pure path discovery result without packet transmission."""
+
+    source_device_id: str = Field(..., examples=["DEVICE-001"])
+    destination_device_id: str = Field(..., examples=["DEVICE-004"])
+    reachable: bool = Field(..., examples=[True])
+    path: list[str] = Field(default_factory=list, examples=[["DEVICE-001", "DEVICE-002", "DEVICE-004"]])
+    hop_count: int = Field(0, examples=[2])
+    failure_reason: str | None = Field(None, examples=[None])
 
 
 class TopologyResponse(BaseModel):
@@ -43,6 +63,7 @@ class SendPacketRequest(BaseModel):
     sender_id: str = Field(..., examples=["NODE-A"])
     receiver_id: str = Field(..., examples=["NODE-E"])
     payload: Any = Field(..., examples=["Hello, mesh!"])
+    ttl: int = Field(10, ge=1, le=100, examples=[10])
 
 
 class HopRecordSchema(BaseModel):
@@ -62,6 +83,7 @@ class PacketResponse(BaseModel):
     receiver_id: str = Field(..., examples=["NODE-E"])
     payload: Any = Field(..., examples=["Hello, mesh!"])
     status: str = Field(..., examples=["delivered"])
+    ttl: int = Field(10, examples=[10])
     hop_log: list[HopRecordSchema] = Field(default_factory=list)
 
 

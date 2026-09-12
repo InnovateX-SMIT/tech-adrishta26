@@ -63,3 +63,62 @@ export interface DeviceCryptoStatusResponse {
   encryption_public_key: string | null;
   algorithms: Record<string, string>;
 }
+
+// ---------------------------------------------------------------------------
+// Phase 4 — Mesh Simulation Types
+// ---------------------------------------------------------------------------
+
+export interface MeshNodeInfo {
+  node_id: string;
+  neighbors: string[];
+  is_attacker: boolean;
+  is_online: boolean;
+  is_available_for_relay: boolean;
+}
+
+export interface MeshTopologyResponse {
+  nodes: MeshNodeInfo[];
+  edges: [string, string][];
+}
+
+export interface RouteDiscoveryResponse {
+  source_device_id: string;
+  destination_device_id: string;
+  reachable: boolean;
+  path: string[];
+  hop_count: number;
+  failure_reason: string | null;
+}
+
+export interface HopRecordSchema {
+  hop_number: number;
+  from_node: string;
+  to_node: string;
+  timestamp: string;
+}
+
+export interface MeshPacketResponse {
+  packet_id: string;
+  sender_id: string;
+  receiver_id: string;
+  payload: any;
+  status: string;
+  ttl: number;
+  hop_log: HopRecordSchema[];
+}
+
+export interface CapturedPacketsResponse {
+  node_id: string;
+  captured: MeshPacketResponse[];
+}
+
+export interface DeliveryLogSchema {
+  packet_id: string;
+  source: string;
+  destination: string;
+  route: string[];
+  hops: HopRecordSchema[];
+  status: string;
+  error: string | null;
+  timestamp: string;
+}

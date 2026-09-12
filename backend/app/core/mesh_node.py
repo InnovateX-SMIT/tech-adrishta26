@@ -35,6 +35,8 @@ class MeshNode:
         is_attacker: bool = False,
         *,
         device_id: str | None = None,
+        is_online: bool = True,
+        is_available_for_relay: bool = True,
     ) -> None:
         effective_id = node_id or device_id
         if not effective_id:
@@ -45,6 +47,8 @@ class MeshNode:
         self.seen_packet_ids: set[str] = set()
         self.captured_packets: list[MeshPacket] = []
         self.is_attacker: bool = is_attacker
+        self.is_online: bool = is_online
+        self.is_available_for_relay: bool = is_available_for_relay
 
     @property
     def device_id(self) -> str:
@@ -104,5 +108,6 @@ class MeshNode:
     def __repr__(self) -> str:
         return (
             f"MeshNode(id={self.node_id!r}, neighbors={self.neighbors!r}, "
+            f"online={self.is_online}, relay={self.is_available_for_relay}, "
             f"attacker={self.is_attacker})"
         )

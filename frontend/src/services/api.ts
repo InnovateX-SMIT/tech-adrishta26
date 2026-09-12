@@ -13,7 +13,7 @@ const API_BASE_URL: string = (
 const DEFAULT_TIMEOUT_MS = 6000;
 
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   timeoutMs?: number;
 }
@@ -125,5 +125,76 @@ export const apiService = {
 
   async fetchDeviceCryptoStatus(deviceId: string): Promise<import('../types').DeviceCryptoStatusResponse> {
     return requestWithTimeout<import('../types').DeviceCryptoStatusResponse>(`/api/crypto/devices/${encodeURIComponent(deviceId)}/status`);
+  },
+
+  // -------------------------------------------------------------------------
+  // Phase 4 — Mesh Network Simulation
+  // -------------------------------------------------------------------------
+
+  async fetchMeshTopology(): Promise<import('../types').MeshTopologyResponse> {
+    return requestWithTimeout<import('../types').MeshTopologyResponse>('/api/mesh/topology');
+  },
+
+  async buildMeshDemo(useDeviceIds: boolean = false): Promise<{ message: string; node_count: number; edge_count: number }> {
+    return requestWithTimeout<{ message: string; node_count: number; edge_count: number }>(`/api/mesh/demo?use_device_ids=${useDeviceIds}`, {
+      method: 'POST',
+    });
+  },
+
+  async findMeshRoute(sourceId: string, destId: string): Promise<import('../types').RouteDiscoveryResponse> {
+    return requestWithTimeout<import('../types').RouteDiscoveryResponse>(
+      `/api/mesh/routes/${encodeURIComponent(sourceId)}/${encodeURIComponent(destId)}`
+    );
+  },
+
+  async sendMeshPacket(senderId: string, receiverId: string, payload: any, ttl: number = 10): Promise<import('../types').MeshPacketResponse> {
+    return requestWithTimeout<import('../types').MeshPacketResponse>('/api/mesh/send', {
+      method: 'POST',
+      body: {
+        sender_id: senderId,
+        receiver_id: receiverId,
+        payload,
+        ttl,
+      },
+    });
+  },
+
+  async updateNodeState(nodeId: string, updates: { is_online?: boolean; is_available_for_relay?: boolean }): Promise<import('../types').MeshNodeInfo> {
+    return requestWithTimeout<import('../types').MeshNodeInfo>(`/api/mesh/nodes/${encodeURIComponent(nodeId)}`, {
+      method: 'PATCH',
+      body: updates,
+    });
+  },
+
+  async fetchNodeInbox(nodeId: string): Promise<import('../types').MeshPacketResponse[]> {
+    return requestWithTimeout<import('../types').MeshPacketResponse[]>(`/api/mesh/node/${encodeURIComponent(nodeId)}/inbox`);
+  },
+
+  async fetchAttackerCaptured(nodeId: string): Promise<import('../types').CapturedPacketsResponse> {
+    return requestWithTimeout<import('../types').CapturedPacketsResponse>(`/api/mesh/node/${encodeURIComponent(nodeId)}/captured`);
+  },
+
+  async resetMeshNetwork(): Promise<{ message: string }> {
+    return requestWithTimeout<{ message: string }>('/api/mesh/reset', {
+      method: 'DELETE',
+    });
+  },
+
+  async fetchMeshLogs(): Promise<import('../types').DeliveryLogSchema[]> {
+    return requestWithTimeout<import('../types').DeliveryLogSchema[]>('/api/mesh/logs');
+  },
+
+  async connectMeshNodes(nodeA: string, nodeB: string): Promise<any> {
+    return requestWithTimeout<any>('/api/mesh/connect', {
+      method: 'POST',
+      body: { node_a: nodeA, node_b: nodeB },
+    });
+  },
+
+  async disconnectMeshNodes(nodeA: string, nodeB: string): Promise<any> {
+    return requestWithTimeout<any>('/api/mesh/disconnect', {
+      method: 'POST',
+      body: { node_a: nodeA, node_b: nodeB },
+    });
   },
 };

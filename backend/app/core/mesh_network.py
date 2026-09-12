@@ -26,6 +26,14 @@ class NoRouteError(Exception):
     """Raised when BFS finds no path between source and destination."""
 
 
+class TtlExpiredError(Exception):
+    """Raised when packet TTL decrements to zero before reaching destination."""
+
+
+class NodeOfflineError(Exception):
+    """Raised when a requested node is offline."""
+
+
 @dataclass
 class DeliveryLogEntry:
     """Records an end-to-end packet delivery attempt across the mesh."""
@@ -35,7 +43,7 @@ class DeliveryLogEntry:
     destination: str
     route: list[str]
     hops: list[HopRecord]
-    status: str  # "delivered" or "failed"
+    status: str  # "delivered", "failed", or "expired"
     error: str | None = None
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -78,7 +86,10 @@ class MeshNetwork:
 
         Raises:
             KeyError: if either node ID is not registered.
+            ValueError: if attempting to connect a node to itself.
         """
+        if a_id == b_id:
+            raise ValueError(f"Self-connections are not permitted: {a_id!r}")
         a = self.nodes[a_id]
         b = self.nodes[b_id]
         a.add_neighbor(b_id)
@@ -114,7 +125,7 @@ class MeshNetwork:
 
         Returns:
             {
-                "nodes": [{"node_id": ..., "neighbors": [...], "is_attacker": bool}, ...],
+                "nodes": [{"node_id": ..., "neighbors": [...], "is_attacker": bool, "is_online": bool, "is_available_for_relay": bool}, ...],
                 "edges": [[a_id, b_id], ...]   # deduplicated
             }
         """
@@ -126,6 +137,8 @@ class MeshNetwork:
                     "node_id": node.node_id,
                     "neighbors": sorted(node.neighbors),
                     "is_attacker": node.is_attacker,
+                    "is_online": node.is_online,
+                    "is_available_for_relay": node.is_available_for_relay,
                 }
             )
             for nbr in node.neighbors:
@@ -154,13 +167,18 @@ class MeshNetwork:
             Ordered list of node IDs from source to dest (inclusive).
 
         Raises:
-            NoRouteError: if dest is unreachable from source.
+            NoRouteError: if dest is unreachable from source or either is offline.
             KeyError:     if source or dest is not a registered node.
         """
         if source_id not in self.nodes:
             raise KeyError(f"Source node {source_id!r} not found in the mesh.")
         if dest_id not in self.nodes:
             raise KeyError(f"Destination node {dest_id!r} not found in the mesh.")
+
+        if not self.nodes[source_id].is_online:
+            raise NoRouteError(f"Source node {source_id!r} is offline.")
+        if not self.nodes[dest_id].is_online:
+            raise NoRouteError(f"Destination node {dest_id!r} is offline.")
 
         if source_id == dest_id:
             return [source_id]
@@ -175,8 +193,13 @@ class MeshNetwork:
 
             # Sort neighbors to ensure deterministic BFS path discovery
             for neighbor_id in sorted(current_node.neighbors):
+                nbr_node = self.nodes.get(neighbor_id)
+                if not nbr_node or not nbr_node.is_online:
+                    continue
                 if neighbor_id == dest_id:
                     return path + [dest_id]
+                if not nbr_node.is_available_for_relay:
+                    continue
                 if neighbor_id not in visited:
                     visited.add(neighbor_id)
                     queue.append(path + [neighbor_id])
@@ -197,9 +220,11 @@ class MeshNetwork:
             The same packet instance with hop_log fully populated.
 
         Raises:
-            NoRouteError: if no path exists.
-            KeyError:     if sender or receiver node is unknown.
+            NoRouteError:    if no path exists or endpoints are offline.
+            TtlExpiredError: if packet TTL reaches zero during transit.
+            KeyError:        if sender or receiver node is unknown.
         """
+        route: list[str] = []
         try:
             route = self.find_route(packet.sender_id, packet.receiver_id)
             self.forward_packet(packet, route)
@@ -212,14 +237,14 @@ class MeshNetwork:
                 status="delivered",
             )
             return packet
-        except NoRouteError as exc:
+        except (NoRouteError, TtlExpiredError) as exc:
             self._record_log(
                 packet_id=packet.packet_id,
                 source=packet.sender_id,
                 destination=packet.receiver_id,
-                route=[],
-                hops=[],
-                status="failed",
+                route=route,
+                hops=list(packet.hop_log),
+                status="expired" if isinstance(exc, TtlExpiredError) else "failed",
                 error=str(exc),
             )
             raise
@@ -256,8 +281,8 @@ class MeshNetwork:
 
     def forward_packet(self, packet: MeshPacket, route: list[str]) -> None:
         """
-        Execute hop-by-hop traversal along *route*, appending HopRecords and
-        triggering attacker capture where applicable.
+        Execute hop-by-hop traversal along *route*, appending HopRecords,
+        decrementing TTL, and triggering attacker capture where applicable.
 
         Attacker sniffing model (Phase 7 compatible):
             For each hop (from_node → to_node), ANY node that is:
@@ -274,6 +299,15 @@ class MeshNetwork:
         for hop_index in range(len(route) - 1):
             from_id = route[hop_index]
             to_id = route[hop_index + 1]
+
+            if packet.ttl <= 0:
+                packet.status = "expired"
+                raise TtlExpiredError(
+                    f"Packet {packet.packet_id!r} TTL expired before reaching destination (failed at hop {hop_index + 1} from {from_id!r} to {to_id!r})."
+                )
+            packet.ttl -= 1
+            packet.status = "forwarded"
+
             timestamp = datetime.now(timezone.utc).isoformat()
 
             hop_record = HopRecord(
@@ -293,4 +327,5 @@ class MeshNetwork:
 
         # Deliver to destination
         dest_node = self.nodes[route[-1]]
+        packet.status = "delivered"
         dest_node.receive_packet(packet)

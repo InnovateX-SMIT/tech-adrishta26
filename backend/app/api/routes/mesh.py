@@ -18,7 +18,7 @@ import uuid
 
 from fastapi import APIRouter, HTTPException
 
-from backend.app.core.mesh_network import NoRouteError
+from backend.app.core.mesh_network import NoRouteError, TtlExpiredError
 from backend.app.core.mesh_node import MeshNode
 from backend.app.core.mesh_packet import MeshPacket
 from backend.app.models.schemas import (
@@ -29,8 +29,10 @@ from backend.app.models.schemas import (
     HopRecordSchema,
     NodeInfo,
     PacketResponse,
+    RouteDiscoveryResponse,
     SendPacketRequest,
     TopologyResponse,
+    UpdateNodeStateRequest,
 )
 from backend.app.services.mesh_service import (
     build_demo_network,
@@ -54,6 +56,7 @@ def _packet_to_response(packet: MeshPacket, status: str = "delivered") -> Packet
         receiver_id=packet.receiver_id,
         payload=packet.payload,
         status=status,
+        ttl=packet.ttl,
         hop_log=[
             HopRecordSchema(
                 hop_number=h.hop_number,
@@ -104,11 +107,52 @@ async def get_topology() -> TopologyResponse:
                 node_id=n["node_id"],
                 neighbors=n["neighbors"],
                 is_attacker=n["is_attacker"],
+                is_online=n.get("is_online", True),
+                is_available_for_relay=n.get("is_available_for_relay", True),
             )
             for n in topo["nodes"]
         ],
         edges=[tuple(e) for e in topo["edges"]],  # type: ignore[misc]
     )
+
+
+@router.get(
+    "/routes/{source_device_id}/{destination_device_id}",
+    response_model=RouteDiscoveryResponse,
+    summary="Discover route between nodes",
+    description="Perform BFS path discovery between two nodes without transmitting a packet.",
+)
+async def discover_route(source_device_id: str, destination_device_id: str) -> RouteDiscoveryResponse:
+    net = get_network()
+    if source_device_id not in net.nodes:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Source node {source_device_id!r} not found in the mesh.",
+        )
+    if destination_device_id not in net.nodes:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Destination node {destination_device_id!r} not found in the mesh.",
+        )
+
+    try:
+        path = net.find_route(source_device_id, destination_device_id)
+        return RouteDiscoveryResponse(
+            source_device_id=source_device_id,
+            destination_device_id=destination_device_id,
+            reachable=True,
+            path=path,
+            hop_count=len(path) - 1,
+        )
+    except NoRouteError as exc:
+        return RouteDiscoveryResponse(
+            source_device_id=source_device_id,
+            destination_device_id=destination_device_id,
+            reachable=False,
+            path=[],
+            hop_count=0,
+            failure_reason=str(exc),
+        )
 
 
 @router.post(
@@ -118,7 +162,7 @@ async def get_topology() -> TopologyResponse:
     description=(
         "Route a packet from sender to receiver across the mesh.  "
         "Returns the full traversal log.  Raises 404 if either node is unknown "
-        "and 422 if no route exists between the two nodes."
+        "and 422 if no route exists or TTL expires."
     ),
 )
 async def send_packet(body: SendPacketRequest) -> PacketResponse:
@@ -140,11 +184,12 @@ async def send_packet(body: SendPacketRequest) -> PacketResponse:
         sender_id=body.sender_id,
         receiver_id=body.receiver_id,
         payload=body.payload,
+        ttl=body.ttl,
     )
 
     try:
         net.send_packet(packet)
-    except NoRouteError as exc:
+    except (NoRouteError, TtlExpiredError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     return _packet_to_response(packet, status="delivered")
@@ -208,6 +253,8 @@ async def list_nodes() -> list[NodeInfo]:
             node_id=n.node_id,
             neighbors=sorted(n.neighbors),
             is_attacker=n.is_attacker,
+            is_online=n.is_online,
+            is_available_for_relay=n.is_available_for_relay,
         )
         for n in net.nodes.values()
     ]
@@ -233,6 +280,32 @@ async def add_node(body: AddNodeRequest) -> NodeInfo:
         node_id=node.node_id,
         neighbors=sorted(node.neighbors),
         is_attacker=node.is_attacker,
+        is_online=node.is_online,
+        is_available_for_relay=node.is_available_for_relay,
+    )
+
+
+@router.patch(
+    "/nodes/{node_id}",
+    response_model=NodeInfo,
+    summary="Update node simulation state",
+    description="Update online status or relay availability for a simulated mesh node.",
+)
+async def update_node_state(node_id: str, body: UpdateNodeStateRequest) -> NodeInfo:
+    net = get_network()
+    if node_id not in net.nodes:
+        raise HTTPException(status_code=404, detail=f"Node {node_id!r} not found in the mesh.")
+    node = net.nodes[node_id]
+    if body.is_online is not None:
+        node.is_online = body.is_online
+    if body.is_available_for_relay is not None:
+        node.is_available_for_relay = body.is_available_for_relay
+    return NodeInfo(
+        node_id=node.node_id,
+        neighbors=sorted(node.neighbors),
+        is_attacker=node.is_attacker,
+        is_online=node.is_online,
+        is_available_for_relay=node.is_available_for_relay,
     )
 
 
@@ -268,6 +341,20 @@ async def connect_nodes(body: ConnectNodesRequest) -> dict:
             status_code=404,
             detail=f"Cannot connect nodes: {exc}",
         ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+
+@router.post(
+    "/links",
+    summary="Create a link (alias to /connect)",
+    description="Create a bidirectional link between two registered nodes.",
+)
+async def create_link(body: ConnectNodesRequest) -> dict:
+    return await connect_nodes(body)
 
 
 @router.post(
@@ -288,6 +375,15 @@ async def disconnect_nodes(body: ConnectNodesRequest) -> dict:
             status_code=404,
             detail=f"Cannot disconnect nodes: {exc}",
         ) from exc
+
+
+@router.delete(
+    "/links/{node_a}/{node_b}",
+    summary="Delete a link (alias to /disconnect)",
+    description="Remove the bidirectional link between two nodes.",
+)
+async def delete_link(node_a: str, node_b: str) -> dict:
+    return await disconnect_nodes(ConnectNodesRequest(node_a=node_a, node_b=node_b))
 
 
 @router.get(
