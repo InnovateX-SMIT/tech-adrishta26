@@ -166,7 +166,8 @@ class TestPhase6DecryptionGate(unittest.TestCase):
         )
         
         # Attacker intercepts and changes a single letter in the ciphertext
-        packet["ciphertext"] = packet["ciphertext"].replace("a", "b", 1)
+        tampered_char = "b" if packet["ciphertext"][0] != "b" else "c"
+        packet["ciphertext"] = tampered_char + packet["ciphertext"][1:]
         
         result = process_incoming_packet(packet, "RESQ-002", b'dummy_key', self.registry_path)
         

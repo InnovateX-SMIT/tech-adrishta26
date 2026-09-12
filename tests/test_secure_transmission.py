@@ -523,7 +523,7 @@ def test_attacker_captured_packet_contains_no_plaintext():
 def test_unknown_sender_rejected():
     """16. Unknown sender is rejected with MemberNotFoundError."""
     recipient = create_initialized_member("Recipient Unit")
-    setup_direct_mesh_nodes("DEVICE-001", recipient.device_id)
+    setup_direct_mesh_nodes("DEVICE-999", recipient.device_id)
 
     with pytest.raises(MemberNotFoundError):
         message_service.send_secure_message(
@@ -678,7 +678,7 @@ def test_api_send_with_device_ids():
 
 def test_api_send_unknown_sender_returns_404():
     recipient = create_initialized_member("API Recipient")
-    setup_direct_mesh_nodes("DEVICE-001", recipient.device_id)
+    setup_direct_mesh_nodes("DEVICE-999", recipient.device_id)
 
     payload = {
         "sender_id": "RESQ-GHOST-999",
