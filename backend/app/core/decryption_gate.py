@@ -15,6 +15,28 @@ from backend.app.core.crypto import (
 from backend.app.models.crypto import EncryptionEnvelope
 from backend.app.models.registry import MemberStatus, RescueMember
 
+import logging
+
+# Standard logger for security events
+security_logger = logging.getLogger("resq.security")
+
+# Human-readable security rejection messages conforming to Phase 6 specifications
+HUMAN_REJECTION_MESSAGES = {
+    "UNKNOWN_SENDER": "Unknown sender - packet rejected",
+    "SENDER_REVOKED": "Sender is revoked - packet rejected",
+    "SENDER_INACTIVE": "Sender is not active - packet rejected",
+    "SENDER_MISSING_KEY": "Sender missing key - packet rejected",
+    "INVALID_PUBLIC_KEY": "Invalid public key - packet rejected",
+    "MISSING_SIGNATURE": "Missing signature - packet rejected",
+    "INVALID_SIGNATURE": "Invalid signature - packet rejected",
+    "UNAUTHORIZED_RECIPIENT": "Recipient is not authorized",
+    "REPLAY_ATTACK_DETECTED": "Packet authentication failed - replay detected",
+    "TIMESTAMP_EXPIRED": "Packet authentication failed - timestamp expired",
+    "DECRYPTION_FAILED": "Decryption denied",
+    "MALFORMED_PACKET": "Packet authentication failed - malformed payload",
+}
+
+
 # Audit trail of security decisions (never logs plaintext or private keys)
 SECURITY_LOGS = []
 
@@ -49,9 +71,28 @@ def log_security_event(
     }
     if reason:
         log_entry["reason"] = reason
+        detail = HUMAN_REJECTION_MESSAGES.get(reason, reason)
+        log_entry["detail"] = detail
+        security_logger.warning(f"[WARN] Packet rejected: {packet_id} | Reason: {detail}")
+    else:
+        security_logger.info(
+            f"[INFO] Packet received: {packet_id} | Sender {sender_id} found in registry | "
+            f"Sender status: active | Signature verification: valid | Recipient authorization: approved | "
+            f"Decryption: successful"
+        )
 
     SECURITY_LOGS.append(log_entry)
     return log_entry
+
+
+
+def _reject(reason: str, packet_id: str, sender_id: str, current_receiver_id: str) -> Dict[str, Any]:
+    log_security_event("MESSAGE_REJECTED", packet_id, sender_id, current_receiver_id, reason)
+    return {
+        "status": "REJECTED",
+        "reason": reason,
+        "detail": HUMAN_REJECTION_MESSAGES.get(reason, reason),
+    }
 
 
 def _coerce_receiver_private_key(key_input: Any) -> x25519.X25519PrivateKey:
@@ -95,8 +136,7 @@ def process_incoming_packet(
     elif isinstance(packet, dict):
         p_dict = dict(packet)
     else:
-        log_security_event("MESSAGE_REJECTED", "UNKNOWN", "UNKNOWN", current_receiver_id, "MALFORMED_PACKET")
-        return {"status": "REJECTED", "reason": "MALFORMED_PACKET"}
+        return _reject("MALFORMED_PACKET", "UNKNOWN", "UNKNOWN", current_receiver_id)
 
     packet_id = str(p_dict.get("packet_id", "UNKNOWN"))
     message_id = str(p_dict.get("message_id", "UNKNOWN"))
@@ -126,8 +166,8 @@ def process_incoming_packet(
         sender_member = reg_svc.get_member_by_device_id(sender_id)
 
     if not sender_member:
-        log_security_event("MESSAGE_REJECTED", packet_id, sender_id, current_receiver_id, "UNKNOWN_SENDER")
-        return {"status": "REJECTED", "reason": "UNKNOWN_SENDER"}
+        return _reject("UNKNOWN_SENDER", packet_id, sender_id, current_receiver_id)
+
 
     # =========================================================================
     # STEP 2: Sender Status Validation
@@ -145,16 +185,14 @@ def process_incoming_packet(
 
     if not is_active:
         reason = f"SENDER_{status_name.upper()}"
-        log_security_event("MESSAGE_REJECTED", packet_id, sender_member.rescue_id, current_receiver_id, reason)
-        return {"status": "REJECTED", "reason": reason}
+        return _reject(reason, packet_id, sender_member.rescue_id, current_receiver_id)
 
     # =========================================================================
     # STEP 3: Digital Signature Verification (Ed25519 over Canonical JSON)
     # =========================================================================
     signing_pub_b64 = getattr(sender_member, "signing_public_key", None)
     if not signing_pub_b64:
-        log_security_event("MESSAGE_REJECTED", packet_id, sender_member.rescue_id, current_receiver_id, "SENDER_MISSING_KEY")
-        return {"status": "REJECTED", "reason": "INVALID_SIGNATURE"}
+        return _reject("INVALID_SIGNATURE", packet_id, sender_member.rescue_id, current_receiver_id)
 
     # Support raw Base64 or raw Hex gracefully
     try:
@@ -163,13 +201,11 @@ def process_incoming_packet(
         else:
             sender_pub = decode_ed25519_public_key_b64(signing_pub_b64)
     except Exception:
-        log_security_event("MESSAGE_REJECTED", packet_id, sender_member.rescue_id, current_receiver_id, "INVALID_PUBLIC_KEY")
-        return {"status": "REJECTED", "reason": "INVALID_SIGNATURE"}
+        return _reject("INVALID_SIGNATURE", packet_id, sender_member.rescue_id, current_receiver_id)
 
     signature_str = p_dict.get("signature")
     if not signature_str:
-        log_security_event("MESSAGE_REJECTED", packet_id, sender_member.rescue_id, current_receiver_id, "MISSING_SIGNATURE")
-        return {"status": "REJECTED", "reason": "INVALID_SIGNATURE"}
+        return _reject("INVALID_SIGNATURE", packet_id, sender_member.rescue_id, current_receiver_id)
 
     # Convert Hex signature to Base64 if needed
     if len(signature_str) == 128:  # 64 bytes = 128 hex chars
@@ -206,8 +242,8 @@ def process_incoming_packet(
         is_valid_sig = verify_signature(sender_pub, legacy_bytes, signature_b64)
 
     if not is_valid_sig:
-        log_security_event("MESSAGE_REJECTED", packet_id, sender_member.rescue_id, current_receiver_id, "INVALID_SIGNATURE")
-        return {"status": "REJECTED", "reason": "INVALID_SIGNATURE"}
+        return _reject("INVALID_SIGNATURE", packet_id, sender_member.rescue_id, current_receiver_id)
+
 
     # =========================================================================
     # STEP 4: Recipient Authorization Check
@@ -230,27 +266,23 @@ def process_incoming_packet(
         receiver_aliases.add(receiver_member.device_id)
 
     if not (authorized_targets & receiver_aliases):
-        log_security_event("MESSAGE_REJECTED", packet_id, sender_member.rescue_id, current_receiver_id, "UNAUTHORIZED_RECIPIENT")
-        return {"status": "REJECTED", "reason": "UNAUTHORIZED_RECIPIENT"}
+        return _reject("UNAUTHORIZED_RECIPIENT", packet_id, sender_member.rescue_id, current_receiver_id)
 
     # =========================================================================
     # STEP 5: Protocol Replay Protection Check
     # =========================================================================
     if enforce_replay_protection:
         if packet_id != "UNKNOWN" and packet_id in SEEN_PACKET_IDS:
-            log_security_event("MESSAGE_REJECTED", packet_id, sender_member.rescue_id, current_receiver_id, "REPLAY_ATTACK_DETECTED")
-            return {"status": "REJECTED", "reason": "REPLAY_ATTACK_DETECTED"}
+            return _reject("REPLAY_ATTACK_DETECTED", packet_id, sender_member.rescue_id, current_receiver_id)
         if message_id != "UNKNOWN" and message_id in SEEN_MESSAGE_IDS:
-            log_security_event("MESSAGE_REJECTED", packet_id, sender_member.rescue_id, current_receiver_id, "REPLAY_ATTACK_DETECTED")
-            return {"status": "REJECTED", "reason": "REPLAY_ATTACK_DETECTED"}
+            return _reject("REPLAY_ATTACK_DETECTED", packet_id, sender_member.rescue_id, current_receiver_id)
 
         # Timestamp drift enforcement if timestamp is non-zero
         pkt_time = p_dict.get("timestamp", 0)
         if pkt_time > 0 and max_timestamp_drift > 0:
             drift = abs(time.time() - pkt_time)
             if drift > max_timestamp_drift:
-                log_security_event("MESSAGE_REJECTED", packet_id, sender_member.rescue_id, current_receiver_id, "TIMESTAMP_EXPIRED")
-                return {"status": "REJECTED", "reason": "TIMESTAMP_EXPIRED"}
+                return _reject("TIMESTAMP_EXPIRED", packet_id, sender_member.rescue_id, current_receiver_id)
 
     # =========================================================================
     # STEP 6: Authenticated Decryption Gate (ChaCha20-Poly1305 + HKDF-SHA256)
@@ -271,8 +303,7 @@ def process_incoming_packet(
             priv_key_obj = None
 
     if priv_key_obj is None:
-        log_security_event("MESSAGE_REJECTED", packet_id, sender_member.rescue_id, current_receiver_id, "DECRYPTION_FAILED")
-        return {"status": "REJECTED", "reason": "DECRYPTION_FAILED"}
+        return _reject("DECRYPTION_FAILED", packet_id, sender_member.rescue_id, current_receiver_id)
 
     # Convert Hex parameters to Base64 if needed
     raw_ct = p_dict.get("ciphertext", "")
@@ -337,8 +368,8 @@ def process_incoming_packet(
             plaintext_bytes = None
 
     if plaintext_bytes is None:
-        log_security_event("MESSAGE_REJECTED", packet_id, sender_member.rescue_id, current_receiver_id, "DECRYPTION_FAILED")
-        return {"status": "REJECTED", "reason": "DECRYPTION_FAILED"}
+        return _reject("DECRYPTION_FAILED", packet_id, sender_member.rescue_id, current_receiver_id)
+
 
     # =========================================================================
     # STEP 7: Plaintext Release & Audit Logging

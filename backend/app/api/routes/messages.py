@@ -3,10 +3,14 @@ from fastapi import APIRouter, HTTPException, status
 
 from backend.app.core.crypto import CryptoError
 from backend.app.core.mesh_network import NoRouteError
+from backend.app.core.message_repository import MessageNotFoundError
 from backend.app.models.messages import (
+    ConversationResponse,
     DecryptMessageRequest,
     DecryptMessageResponse,
     InboxMessageSummary,
+    MessageRecord,
+    MessageStatusResponse,
     SendMessageRequest,
     SendMessageResponse,
 )
@@ -24,18 +28,7 @@ from backend.app.services.registry_service import MemberNotFoundError
 router = APIRouter()
 
 
-@router.post(
-    "/send",
-    response_model=SendMessageResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Send secure emergency message",
-    description=(
-        "Encrypts the emergency message using X25519 + ChaCha20-Poly1305, signs the canonical "
-        "metadata and ciphertext with the sender's Ed25519 key, and transmits the secure packet "
-        "across the mesh network. The transmitted packet payload NEVER contains plaintext."
-    ),
-)
-async def send_secure_message(body: SendMessageRequest) -> SendMessageResponse:
+def _handle_send_message(body: SendMessageRequest) -> SendMessageResponse:
     try:
         return message_service.send_secure_message(
             sender_id=body.sender_id,
@@ -88,6 +81,131 @@ async def send_secure_message(body: SendMessageRequest) -> SendMessageResponse:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to transmit secure message: {str(exc)}",
         )
+
+
+@router.post(
+    "",
+    response_model=SendMessageResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Send secure emergency message (Canonical)",
+    description=(
+        "Canonical endpoint: Encrypts the emergency message using X25519 + ChaCha20-Poly1305, "
+        "signs canonical metadata and ciphertext with sender's Ed25519 key, and transmits the secure "
+        "packet across the mesh network. The transmitted packet payload NEVER contains plaintext."
+    ),
+)
+async def send_secure_message_canonical(body: SendMessageRequest) -> SendMessageResponse:
+    return _handle_send_message(body)
+
+
+@router.post(
+    "/send",
+    response_model=SendMessageResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Send secure emergency message (Alias)",
+    description="Delegates directly to canonical send_secure_message without duplicate logic.",
+)
+async def send_secure_message_alias(body: SendMessageRequest) -> SendMessageResponse:
+    return _handle_send_message(body)
+
+
+@router.get(
+    "/conversations/{device_a}/{device_b}",
+    response_model=ConversationResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get conversation thread between two devices",
+)
+async def get_conversation(device_a: str, device_b: str) -> ConversationResponse:
+    return message_service.get_conversation_thread(device_a, device_b)
+
+
+@router.get(
+    "/device/{device_id}",
+    response_model=List[MessageRecord],
+    status_code=status.HTTP_200_OK,
+    summary="Get message history for device",
+)
+async def get_device_messages(device_id: str) -> List[MessageRecord]:
+    return message_service.list_device_messages(device_id)
+
+
+@router.get(
+    "/{message_id}",
+    response_model=MessageRecord,
+    status_code=status.HTTP_200_OK,
+    summary="Get secure message record by ID (No plaintext)",
+)
+async def get_message_record(message_id: str) -> MessageRecord:
+    record = message_service.get_message(message_id)
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Message '{message_id}' not found.",
+        )
+    return record
+
+
+@router.get(
+    "/{message_id}/status",
+    response_model=MessageStatusResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get message delivery lifecycle status",
+)
+async def get_message_status(message_id: str) -> MessageStatusResponse:
+    try:
+        return message_service.get_message_status(message_id)
+    except MessageNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        )
+
+
+@router.post(
+    "/{message_id}/retry",
+    response_model=SendMessageResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Retry a failed or queued message without duplicating plaintext",
+)
+async def retry_message(message_id: str) -> SendMessageResponse:
+    try:
+        return message_service.retry_failed_message(message_id)
+    except MessageNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        )
+    except MemberNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        )
+    except MeshNodeNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        )
+    except (MemberNotActiveError, MemberMissingKeysError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+    except NoRouteError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"No route found during retry: {str(exc)}",
+        )
+    except MessageServiceError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retry message: {str(exc)}",
+        )
+
 
 
 @router.get(
@@ -166,3 +284,15 @@ async def decrypt_message(body: DecryptMessageRequest) -> DecryptMessageResponse
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process decryption: {str(exc)}",
         )
+
+
+@router.get(
+    "/security-logs",
+    response_model=List[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Get security authorization gate audit logs (No plaintext)",
+)
+async def get_security_logs() -> List[dict]:
+    from backend.app.core.decryption_gate import SECURITY_LOGS
+    return list(SECURITY_LOGS)
+
