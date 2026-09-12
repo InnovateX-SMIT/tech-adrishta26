@@ -20,9 +20,7 @@ import {
   RotateCcw,
   ArrowRight,
   Zap,
-  Terminal,
   Activity,
-  Layers,
 } from 'lucide-react';
 
 const PRESET_MESSAGES = [
@@ -729,96 +727,7 @@ export const AttackSimulation: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* 5. Before-and-After Comparison Matrix */}
-      <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-            <Layers className="w-4 h-4 text-cyan-400" />
-            Security Contrast Summary
-          </h3>
-          <span className="text-[11px] text-slate-400">Core Architecture Evaluation</span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-slate-800 text-slate-400 text-[11px]">
-                <th className="py-2.5 px-3">Security Property</th>
-                <th className="py-2.5 px-3 text-rose-400 font-semibold">Before RESQ (Vulnerable)</th>
-                <th className="py-2.5 px-3 text-emerald-400 font-semibold">After RESQ (Protected)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60 text-slate-300">
-              <tr>
-                <td className="py-2.5 px-3 font-medium">Packet can be captured by eavesdropper</td>
-                <td className="py-2.5 px-3 text-rose-300">Yes (Physical/Medium Property)</td>
-                <td className="py-2.5 px-3 text-emerald-300">Yes (Physical/Medium Property)</td>
-              </tr>
-              <tr>
-                <td className="py-2.5 px-3 font-medium">Message transmitted as plaintext</td>
-                <td className="py-2.5 px-3 text-rose-400 font-semibold">Yes (Exposed on wire)</td>
-                <td className="py-2.5 px-3 text-emerald-400 font-semibold">No (ChaCha20-Poly1305)</td>
-              </tr>
-              <tr>
-                <td className="py-2.5 px-3 font-medium">Ciphertext transmitted on wire</td>
-                <td className="py-2.5 px-3 text-slate-400">No</td>
-                <td className="py-2.5 px-3 text-emerald-400 font-semibold">Yes</td>
-              </tr>
-              <tr>
-                <td className="py-2.5 px-3 font-medium">Attacker can read original message</td>
-                <td className="py-2.5 px-3 text-rose-400 font-semibold">Yes (Total Privacy Breach)</td>
-                <td className="py-2.5 px-3 text-emerald-400 font-semibold">No (Cryptographically Protected)</td>
-              </tr>
-              <tr>
-                <td className="py-2.5 px-3 font-medium">Authorized receiver can decrypt and read</td>
-                <td className="py-2.5 px-3 text-slate-300">Yes (Unverified)</td>
-                <td className="py-2.5 px-3 text-emerald-400 font-semibold">Yes (Phase 6 Authorized)</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Central Takeaway Quote */}
-        <div className="p-4 rounded-xl bg-cyan-950/20 border border-cyan-500/30 text-cyan-200 text-xs font-medium text-center shadow-sm">
-          <p className="tracking-wide">
-            "The goal is not to prevent packet capture. The goal is to ensure that capturing a packet does
-            not reveal the emergency message."
-          </p>
-        </div>
-      </div>
-
-      {/* 6. Security Event Logs Terminal */}
-      <div className="bg-slate-950 border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-3 font-mono">
-        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5 text-xs text-slate-400">
-          <span className="flex items-center gap-2">
-            <Terminal className="w-3.5 h-3.5 text-cyan-400" />
-            Security & Attack Event Logs
-          </span>
-          <span className="text-[10px] text-slate-500">Zero plaintext logged in protected mode</span>
-        </div>
-
-        <div className="max-h-48 overflow-y-auto space-y-1 text-[11px] pr-2 scrollbar-thin scrollbar-thumb-slate-800">
-          {lastResponse?.security_logs?.length ? (
-            lastResponse.security_logs.map((line, idx) => (
-              <div
-                key={idx}
-                className={
-                  line.includes('[WARN]')
-                    ? 'text-rose-400'
-                    : line.includes('[INFO]')
-                    ? 'text-cyan-300'
-                    : 'text-slate-400'
-                }
-              >
-                {line}
-              </div>
-            ))
-          ) : (
-            <div className="text-slate-600 italic">No simulation events recorded yet. Click Run Simulation above.</div>
-          )}
-        </div>
-      </div>
     </div>
   );
 };
+
