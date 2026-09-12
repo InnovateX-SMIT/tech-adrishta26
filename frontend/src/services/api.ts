@@ -205,7 +205,7 @@ export const apiService = {
   async sendSecureMessage(
     payload: import('../types').SendMessageRequest
   ): Promise<import('../types').SendMessageResponse> {
-    return requestWithTimeout<import('../types').SendMessageResponse>('/api/messages/send', {
+    return requestWithTimeout<import('../types').SendMessageResponse>('/api/messages', {
       method: 'POST',
       body: payload,
     });
@@ -227,5 +227,48 @@ export const apiService = {
       body: payload,
     });
   },
+
+  async fetchMessageStatus(
+    messageId: string
+  ): Promise<import('../types').MessageStatusResponse> {
+    return requestWithTimeout<import('../types').MessageStatusResponse>(
+      `/api/messages/${encodeURIComponent(messageId)}/status`
+    );
+  },
+
+  async fetchMessageRecord(
+    messageId: string
+  ): Promise<import('../types').MessageRecord> {
+    return requestWithTimeout<import('../types').MessageRecord>(
+      `/api/messages/${encodeURIComponent(messageId)}`
+    );
+  },
+
+  async retryMessage(
+    messageId: string
+  ): Promise<import('../types').SendMessageResponse> {
+    return requestWithTimeout<import('../types').SendMessageResponse>(
+      `/api/messages/${encodeURIComponent(messageId)}/retry`,
+      { method: 'POST' }
+    );
+  },
+
+  async fetchDeviceMessages(
+    deviceId: string
+  ): Promise<import('../types').MessageRecord[]> {
+    return requestWithTimeout<import('../types').MessageRecord[]>(
+      `/api/devices/${encodeURIComponent(deviceId)}/messages`
+    );
+  },
+
+  async fetchConversation(
+    deviceA: string,
+    deviceB: string
+  ): Promise<import('../types').ConversationResponse> {
+    return requestWithTimeout<import('../types').ConversationResponse>(
+      `/api/conversations/${encodeURIComponent(deviceA)}/${encodeURIComponent(deviceB)}`
+    );
+  },
 };
+
 

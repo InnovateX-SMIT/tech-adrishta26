@@ -5,6 +5,8 @@ import {
   SendMessageResponse,
   InboxMessageSummary,
   DecryptMessageResponse,
+  ConversationResponse,
+  MessageRecord,
 } from '../types';
 import {
   ShieldCheck,
@@ -52,6 +54,14 @@ export const SecureMessaging: React.FC<SecureMessagingProps> = ({
   // Attack defense demonstration state
   const [tampering, setTampering] = useState<boolean>(false);
 
+  // Conversation thread & lifecycle state
+  const [convDeviceA, setConvDeviceA] = useState<string>('');
+  const [convDeviceB, setConvDeviceB] = useState<string>('');
+  const [conversation, setConversation] = useState<ConversationResponse | null>(null);
+  const [loadingConv, setLoadingConv] = useState<boolean>(false);
+  const [retryingMessageId, setRetryingMessageId] = useState<string | null>(null);
+  const [retryStatusMessage, setRetryStatusMessage] = useState<string | null>(null);
+
   // Auto-select initial active sender and recipient
   useEffect(() => {
     const activeMembers = members.filter((m) => m.status === 'active');
@@ -59,11 +69,15 @@ export const SecureMessaging: React.FC<SecureMessagingProps> = ({
       if (!senderId) setSenderId(activeMembers[0].rescue_id);
       if (!recipientId) setRecipientId(activeMembers[1].rescue_id);
       if (!inspectDeviceId) setInspectDeviceId(activeMembers[1].rescue_id);
+      if (!convDeviceA) setConvDeviceA(activeMembers[0].device_id);
+      if (!convDeviceB) setConvDeviceB(activeMembers[1].device_id);
     } else if (activeMembers.length === 1) {
       if (!senderId) setSenderId(activeMembers[0].rescue_id);
       if (!inspectDeviceId) setInspectDeviceId(activeMembers[0].rescue_id);
+      if (!convDeviceA) setConvDeviceA(activeMembers[0].device_id);
     }
-  }, [members, senderId, recipientId, inspectDeviceId]);
+  }, [members, senderId, recipientId, inspectDeviceId, convDeviceA, convDeviceB]);
+
 
   // Load recipient inbox
   const loadInbox = useCallback(async (targetId: string) => {
@@ -89,6 +103,46 @@ export const SecureMessaging: React.FC<SecureMessagingProps> = ({
       loadInbox(inspectDeviceId);
     }
   }, [inspectDeviceId, loadInbox]);
+
+  // Load conversation thread
+  const loadConversation = useCallback(async (devA: string, devB: string) => {
+    if (!devA || !devB || devA === devB) return;
+    setLoadingConv(true);
+    try {
+      const data = await apiService.fetchConversation(devA, devB);
+      setConversation(data);
+    } catch {
+      // conversation thread may be empty initially
+    } finally {
+      setLoadingConv(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (convDeviceA && convDeviceB && convDeviceA !== convDeviceB) {
+      loadConversation(convDeviceA, convDeviceB);
+    }
+  }, [convDeviceA, convDeviceB, loadConversation]);
+
+  const handleRetryMessage = async (messageId: string) => {
+    setRetryingMessageId(messageId);
+    setRetryStatusMessage(null);
+    try {
+      const resp = await apiService.retryMessage(messageId);
+      setRetryStatusMessage(`Message ${messageId} successfully retried! New packet: ${resp.packet_id}`);
+      if (convDeviceA && convDeviceB) {
+        await loadConversation(convDeviceA, convDeviceB);
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setRetryStatusMessage(`Retry failed: ${err.message}`);
+      } else {
+        setRetryStatusMessage('Retry failed.');
+      }
+    } finally {
+      setRetryingMessageId(null);
+    }
+  };
 
   // Handle Send Secure Message
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -118,8 +172,8 @@ export const SecureMessaging: React.FC<SecureMessagingProps> = ({
       const resp = await apiService.sendSecureMessage({
         sender_id: senderId,
         recipient_id: recipientId,
-        message: messageText.trim(),
-        priority,
+        message: messageText,
+        priority: priority,
       });
 
       setLastSentResponse(resp);
@@ -133,6 +187,10 @@ export const SecureMessaging: React.FC<SecureMessagingProps> = ({
         members.find((m) => m.rescue_id === recipientId)?.device_id === inspectDeviceId
       ) {
         await loadInbox(inspectDeviceId);
+      }
+
+      if (convDeviceA && convDeviceB) {
+        await loadConversation(convDeviceA, convDeviceB);
       }
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -577,35 +635,83 @@ export const SecureMessaging: React.FC<SecureMessagingProps> = ({
                 <div className="grid grid-cols-3 gap-2">
                   <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-center">
                     <span className="text-[9px] uppercase font-bold text-slate-500 block">Sender Auth</span>
-                    <span className="text-xs font-mono font-bold text-emerald-400">✓ VERIFIED</span>
+                    <span className={`text-xs font-mono font-bold ${
+                      decryptionResult.reason === 'UNKNOWN_SENDER' || decryptionResult.reason === 'SENDER_REVOKED' || decryptionResult.reason === 'SENDER_INACTIVE'
+                        ? 'text-red-400'
+                        : 'text-emerald-400'
+                    }`}>
+                      {decryptionResult.reason === 'UNKNOWN_SENDER'
+                        ? '✗ UNKNOWN'
+                        : decryptionResult.reason === 'SENDER_REVOKED'
+                        ? '✗ REVOKED'
+                        : decryptionResult.reason === 'SENDER_INACTIVE'
+                        ? '✗ INACTIVE'
+                        : '✓ VERIFIED'}
+                    </span>
                   </div>
                   <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-center">
                     <span className="text-[9px] uppercase font-bold text-slate-500 block">Signature</span>
-                    <span className="text-xs font-mono font-bold text-emerald-400">✓ ED25519 VALID</span>
+                    <span className={`text-xs font-mono font-bold ${
+                      decryptionResult.reason === 'INVALID_SIGNATURE'
+                        ? 'text-red-400'
+                        : decryptionResult.status === 'SUCCESS'
+                        ? 'text-emerald-400'
+                        : 'text-slate-500'
+                    }`}>
+                      {decryptionResult.reason === 'INVALID_SIGNATURE'
+                        ? '✗ INVALID'
+                        : decryptionResult.status === 'SUCCESS'
+                        ? '✓ ED25519 VALID'
+                        : '— SKIPPED'}
+                    </span>
                   </div>
                   <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-center">
-                    <span className="text-[9px] uppercase font-bold text-slate-500 block">Cipher Integrity</span>
-                    <span className="text-xs font-mono font-bold text-emerald-400">✓ POLY1305 AUTH</span>
+                    <span className="text-[9px] uppercase font-bold text-slate-500 block">Recipient Auth</span>
+                    <span className={`text-xs font-mono font-bold ${
+                      decryptionResult.reason === 'UNAUTHORIZED_RECIPIENT'
+                        ? 'text-red-400'
+                        : decryptionResult.status === 'SUCCESS'
+                        ? 'text-emerald-400'
+                        : 'text-slate-500'
+                    }`}>
+                      {decryptionResult.reason === 'UNAUTHORIZED_RECIPIENT'
+                        ? '✗ NOT AUTHORIZED'
+                        : decryptionResult.status === 'SUCCESS'
+                        ? '✓ AUTHORIZED'
+                        : '— SKIPPED'}
+                    </span>
                   </div>
                 </div>
 
-                {/* Plaintext Box */}
-                <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-1.5">
-                  <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
-                    Decrypted Plaintext Emergency Message:
-                  </span>
-                  <p className="text-sm font-semibold text-slate-100 leading-relaxed font-sans">
-                    {decryptionResult.message || 'No plaintext message returned.'}
-                  </p>
-                </div>
+                {/* Plaintext Box (SUCCESS) or Access Denied Box (REJECTED) */}
+                {decryptionResult.status === 'SUCCESS' ? (
+                  <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-1.5">
+                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
+                      Decrypted Plaintext Emergency Message:
+                    </span>
+                    <p className="text-sm font-semibold text-slate-100 leading-relaxed font-sans">
+                      "{decryptionResult.message}"
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 space-y-1.5 animate-shake">
+                    <div className="flex items-center gap-2 text-red-400 font-bold text-xs uppercase tracking-wider">
+                      <ShieldAlert className="w-4 h-4 text-red-500" />
+                      <span>Access Denied: {decryptionResult.detail || decryptionResult.reason}</span>
+                    </div>
+                    <p className="text-xs text-red-300 font-sans leading-relaxed">
+                      The Phase 6 Decryption Gate rejected plaintext release because the security verification order failed at: <strong>{decryptionResult.reason}</strong>. Zero plaintext or private keys were leaked.
+                    </p>
+                  </div>
+                )}
 
                 {/* Metadata details */}
                 <div className="text-[11px] font-mono text-slate-400 space-y-1 bg-slate-950/60 p-3 rounded-xl border border-slate-900">
                   <div><strong>Sender:</strong> {decryptionResult.sender_name || 'N/A'} ({decryptionResult.sender_id || 'N/A'})</div>
                   <div><strong>Packet ID:</strong> {decryptionResult.packet_id || 'N/A'}</div>
-                  <div><strong>Status:</strong> {decryptionResult.status}</div>
-                  {decryptionResult.reason && (
-                    <div className="text-amber-400"><strong>Notice:</strong> {decryptionResult.reason}</div>
+                  <div><strong>Status:</strong> <span className={decryptionResult.status === 'SUCCESS' ? 'text-emerald-400' : 'text-red-400 font-bold'}>{decryptionResult.status}</span></div>
+                  {decryptionResult.detail && (
+                    <div className="text-amber-400"><strong>Security Decision:</strong> {decryptionResult.detail}</div>
                   )}
                 </div>
               </div>
@@ -620,6 +726,244 @@ export const SecureMessaging: React.FC<SecureMessagingProps> = ({
           </div>
         </div>
       </div>
+
+      {/* ================================================================= */}
+      {/* FULL-WIDTH SECTION: PERSISTENT CONVERSATION & LIFECYCLE TRACKER   */}
+      {/* ================================================================= */}
+      <div
+        style={{
+          marginTop: '2rem',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-md)',
+          padding: '1.5rem',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <span style={{ fontSize: '1.2rem' }}>💬</span>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>
+                Persistent Conversation Thread &amp; Message Lifecycle
+              </h3>
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  padding: '0.2rem 0.5rem',
+                  borderRadius: '999px',
+                  fontWeight: 700,
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  color: 'var(--accent-emerald)',
+                  border: '1px solid var(--accent-emerald)',
+                }}
+              >
+                ZERO PLAINTEXT ON DISK
+              </span>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginTop: '0.25rem' }}>
+              All messages are persistently tracked in <code>data/messages.json</code> with exact lifecycle statuses. Only authenticated encryption envelopes are stored on disk.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Device A:</label>
+              <select
+                value={convDeviceA}
+                onChange={(e) => setConvDeviceA(e.target.value)}
+                style={{
+                  padding: '0.4rem 0.6rem',
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.8rem',
+                }}
+              >
+                {members.map((m) => (
+                  <option key={m.device_id} value={m.device_id}>
+                    {m.device_id} ({m.name})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Device B:</label>
+              <select
+                value={convDeviceB}
+                onChange={(e) => setConvDeviceB(e.target.value)}
+                style={{
+                  padding: '0.4rem 0.6rem',
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.8rem',
+                }}
+              >
+                {members.map((m) => (
+                  <option key={m.device_id} value={m.device_id}>
+                    {m.device_id} ({m.name})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              onClick={() => loadConversation(convDeviceA, convDeviceB)}
+              disabled={loadingConv}
+              className="btn-secondary"
+              style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem' }}
+            >
+              {loadingConv ? 'Refreshing...' : '↻ Load Thread'}
+            </button>
+          </div>
+        </div>
+
+        {retryStatusMessage && (
+          <div
+            style={{
+              padding: '0.65rem 0.9rem',
+              borderRadius: 'var(--radius-sm)',
+              marginBottom: '1rem',
+              fontSize: '0.82rem',
+              background: retryStatusMessage.includes('failed') ? 'rgba(244, 63, 94, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+              border: `1px solid ${retryStatusMessage.includes('failed') ? 'var(--accent-rose)' : 'var(--accent-emerald)'}`,
+              color: retryStatusMessage.includes('failed') ? 'var(--accent-rose)' : 'var(--accent-emerald)',
+            }}
+          >
+            {retryStatusMessage}
+          </div>
+        )}
+
+        {/* Message Thread List */}
+        {conversation && conversation.messages.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            {conversation.messages.map((msg: MessageRecord) => {
+              const isDelivered = msg.status === 'DELIVERED';
+              const isDecrypted = msg.status === 'DECRYPTED';
+              const isFailed = msg.status === 'FAILED';
+              const statusColor = isDecrypted
+                ? 'var(--accent-cyan)'
+                : isDelivered
+                ? 'var(--accent-emerald)'
+                : isFailed
+                ? 'var(--accent-rose)'
+                : 'var(--accent-amber)';
+
+              return (
+                <div
+                  key={msg.message_id}
+                  style={{
+                    background: 'rgba(0,0,0,0.25)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '1rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.6rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <span
+                        style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          padding: '0.2rem 0.55rem',
+                          borderRadius: '999px',
+                          color: statusColor,
+                          background: `${statusColor}18`,
+                          border: `1px solid ${statusColor}`,
+                        }}
+                      >
+                        {msg.status}
+                      </span>
+                      <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                        {msg.message_id}
+                      </strong>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        (Packet: <code>{msg.packet_id}</code>)
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        {new Date(msg.created_at * 1000).toLocaleTimeString()}
+                      </span>
+                      {isFailed && (
+                        <button
+                          onClick={() => handleRetryMessage(msg.message_id)}
+                          disabled={retryingMessageId === msg.message_id}
+                          style={{
+                            padding: '0.25rem 0.6rem',
+                            fontSize: '0.72rem',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--accent-amber)',
+                            color: '#000',
+                            fontWeight: 700,
+                            border: 'none',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {retryingMessageId === msg.message_id ? 'Retrying...' : '↻ Retry'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                    <div>
+                      <span style={{ color: 'var(--text-muted)' }}>Sender: </span>
+                      <strong>{msg.sender_rescue_id}</strong> ({msg.sender_device_id})
+                    </div>
+                    <div>
+                      <span style={{ color: 'var(--text-muted)' }}>Recipient: </span>
+                      <strong>{msg.recipient_rescue_id}</strong> ({msg.recipient_device_id})
+                    </div>
+                    <div>
+                      <span style={{ color: 'var(--text-muted)' }}>Route Hops: </span>
+                      <span>{msg.route && msg.route.length > 0 ? msg.route.join(' ➔ ') : `${msg.hop_count} hops`}</span>
+                    </div>
+                    {msg.retry_count > 0 && (
+                      <div>
+                        <span style={{ color: 'var(--accent-amber)' }}>Retries: </span>
+                        <strong>{msg.retry_count}</strong>
+                      </div>
+                    )}
+                  </div>
+
+                  {msg.failure_reason && (
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--accent-rose)' }}>
+                      <strong>Failure Reason:</strong> {msg.failure_reason}
+                    </div>
+                  )}
+
+                  {/* Encrypted Envelope Wire Snapshot */}
+                  <div
+                    style={{
+                      marginTop: '0.75rem',
+                      padding: '0.5rem 0.75rem',
+                      background: 'rgba(0,0,0,0.4)',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.72rem',
+                      fontFamily: 'monospace',
+                      color: 'var(--text-muted)',
+                      overflowX: 'auto',
+                    }}
+                  >
+                    <div><span style={{ color: 'var(--accent-cyan)' }}>Ciphertext:</span> {msg.payload.ciphertext.slice(0, 48)}...</div>
+                    <div><span style={{ color: 'var(--accent-amber)' }}>Ed25519 Signature:</span> {msg.payload.signature.slice(0, 48)}...</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            {loadingConv ? 'Loading conversation thread...' : 'No persistent messages found between these two devices. Send a distress dispatch to begin.'}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
+

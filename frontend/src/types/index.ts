@@ -189,5 +189,61 @@ export interface DecryptMessageResponse {
   packet_id?: string | null;
   message_id?: string | null;
   reason?: string | null;
+  detail?: string | null;
 }
+
+
+export type MessageStatus =
+  | 'CREATED'
+  | 'ENCRYPTED'
+  | 'ROUTING'
+  | 'IN_TRANSIT'
+  | 'DELIVERED'
+  | 'DECRYPTED'
+  | 'FAILED'
+  | 'EXPIRED'
+  | 'QUEUED';
+
+export interface MessageRecord {
+  message_id: string;
+  packet_id: string;
+  sender_device_id: string;
+  recipient_device_id: string;
+  sender_rescue_id: string;
+  recipient_rescue_id: string;
+  conversation_id: string;
+  created_at: number;
+  delivered_at?: number | null;
+  decrypted_at?: number | null;
+  status: MessageStatus;
+  failure_reason?: string | null;
+  retry_count: number;
+  hop_count: number;
+  route: string[];
+  payload: SecureMessagePayload;
+}
+
+export interface MessageStatusResponse {
+  message_id: string;
+  packet_id: string;
+  sender_id: string;
+  recipient_id: string;
+  status: MessageStatus;
+  created_at: number;
+  delivered_at?: number | null;
+  decrypted_at?: number | null;
+  retry_count: number;
+  hop_count: number;
+  route: string[];
+  failure_reason?: string | null;
+}
+
+export interface ConversationResponse {
+  conversation_id: string;
+  device_a: string;
+  device_b: string;
+  total_messages: number;
+  messages: MessageRecord[];
+}
+
 
