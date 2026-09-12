@@ -6,20 +6,12 @@ import { AttackSimulation } from './components/AttackSimulation';
 import { Sidebar, NavTabId } from './components/layout/Sidebar';
 import { Navbar } from './components/layout/Navbar';
 import { SectionHeader } from './components/layout/SectionHeader';
-import { KPICard } from './components/dashboard/KPICard';
-import { SystemStatusBar } from './components/dashboard/SystemStatusBar';
 import {
-  HealthResponse,
-  SystemInfoResponse,
   ConnectionState,
   RescueMember,
-  MeshTopologyResponse,
 } from './types';
 import {
-  Network,
-  Radio,
   Users,
-  ShieldCheck,
   KeyRound,
   UserPlus,
   CheckCircle2,
@@ -34,13 +26,7 @@ export const App: React.FC = () => {
 
   // Backend status states
   const [connectionState, setConnectionState] = useState<ConnectionState>('loading');
-  const [healthData, setHealthData] = useState<HealthResponse | null>(null);
-  const [systemInfo, setSystemInfo] = useState<SystemInfoResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [lastPingTime, setLastPingTime] = useState<string | null>(null);
-
-  // Topology metrics state for top KPIs
-  const [topology, setTopology] = useState<MeshTopologyResponse>({ nodes: [], edges: [] });
 
   // Registry states
   const [members, setMembers] = useState<RescueMember[]>([]);
@@ -59,27 +45,15 @@ export const App: React.FC = () => {
     setErrorMessage(null);
 
     try {
-      const [health, system, topo] = await Promise.all([
-        apiService.getHealth(),
-        apiService.getSystemInfo(),
-        apiService.fetchMeshTopology().catch(() => ({ nodes: [], edges: [] })),
-      ]);
-
-      setHealthData(health);
-      setSystemInfo(system);
-      setTopology(topo);
+      await apiService.getHealth();
       setConnectionState('connected');
-      setLastPingTime(new Date().toLocaleTimeString());
     } catch (err: unknown) {
       setConnectionState('error');
-      setHealthData(null);
-      setSystemInfo(null);
       if (err instanceof Error) {
         setErrorMessage(err.message);
       } else {
         setErrorMessage('Failed to connect to backend service.');
       }
-      setLastPingTime(new Date().toLocaleTimeString());
     }
   }, []);
 
@@ -171,10 +145,6 @@ export const App: React.FC = () => {
     }
   };
 
-  const activeCount = members.filter((m) => m.status === 'active').length;
-  const cryptoInitializedCount = members.filter((m) => m.signing_public_key && m.encryption_public_key).length;
-  const revokedCount = members.filter((m) => m.status === 'revoked').length;
-
   return (
     <div className="flex h-screen overflow-hidden bg-[#070b13] text-slate-100 font-sans select-none">
       {/* 1. Fixed Collapsible Sidebar */}
@@ -208,50 +178,6 @@ export const App: React.FC = () => {
           <div className="absolute bottom-[10%] left-[10%] w-[350px] h-[350px] rounded-full bg-violet-500/5 blur-[100px] pointer-events-none" />
 
           <div className="max-w-7xl mx-auto space-y-6 relative">
-            {/* Top KPI Metrics Row */}
-            <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full">
-              <KPICard
-                title="Mesh Nodes"
-                value={topology.nodes.length || 5}
-                subtitle="Active topology relays"
-                icon={Network}
-                accentColor="cyan"
-                loading={connectionState === 'loading' && !healthData}
-              />
-              <KPICard
-                title="Routing Links"
-                value={topology.edges.length || 6}
-                subtitle="Multi-hop wireless paths"
-                icon={Radio}
-                accentColor="indigo"
-                loading={connectionState === 'loading' && !healthData}
-              />
-              <KPICard
-                title="Rescue Personnel"
-                value={members.length}
-                subtitle={`${activeCount} active • ${cryptoInitializedCount} keyed • ${revokedCount} revoked`}
-                icon={Users}
-                accentColor="green"
-                loading={loadingMembers && members.length === 0}
-              />
-              <KPICard
-                title="Security Engine"
-                value="100% Zero-Trust"
-                subtitle={systemInfo ? `${systemInfo.mode.toUpperCase()} (PHASE ${systemInfo.phase})` : "X25519 + ChaCha20-Poly1305"}
-                icon={ShieldCheck}
-                accentColor="amber"
-                loading={connectionState === 'loading' && !healthData}
-              />
-            </section>
-
-            {/* System Status Telemetry Strip */}
-            <SystemStatusBar
-              nodeCount={topology.nodes.length || 5}
-              edgeCount={topology.edges.length || 6}
-              isBackendConnected={connectionState === 'connected'}
-              lastPingTime={lastPingTime}
-              deliveredPacketsCount={members.length}
-            />
 
             {/* Connection Error Banner */}
             {connectionState === 'error' && (
