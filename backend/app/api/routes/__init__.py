@@ -9,6 +9,7 @@ from .crypto import router as crypto_router
 from .mesh import router as mesh_router
 from .messages import router as messages_router
 from .attack import router as attack_router
+from .dashboard import router as dashboard_router
 
 api_router = APIRouter()
 api_router.include_router(health_router, tags=["Health"])
@@ -18,6 +19,7 @@ api_router.include_router(crypto_router, tags=["Crypto"])
 api_router.include_router(mesh_router, prefix="/mesh", tags=["Mesh"])
 api_router.include_router(messages_router, prefix="/messages", tags=["Messages"])
 api_router.include_router(attack_router, prefix="/attack", tags=["Attack Simulation"])
+api_router.include_router(dashboard_router, prefix="/dashboard", tags=["Dashboard"])
 
 
 @api_router.get(
