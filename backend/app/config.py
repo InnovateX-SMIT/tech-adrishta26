@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     environment: str = "development"
     backend_host: str = "127.0.0.1"
     backend_port: int = 8000
-    phase: int = 1
-    phase_name: str = "phase-1"
+    phase: int = 2
+    phase_name: str = "phase-2"
     mesh_enabled: bool = False
     encryption_enabled: bool = False
 

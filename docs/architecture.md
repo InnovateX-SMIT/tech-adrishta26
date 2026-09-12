@@ -14,54 +14,82 @@ However, standard unencrypted P2P mesh protocols broadcast packets indiscriminat
 
 ## 2. Security Boundaries & Architectural Invariants
 
-The implementation adheres strictly to the following 10 architectural boundaries:
+The implementation adheres strictly to the following architectural boundaries:
 
-1. **Sender-Side End-to-End Encryption**: Message content encryption occurs entirely on the sender device before any packet is queued for mesh transmission.
-2. **Authorized Receiver Decryption**: Decryption occurs exclusively at the intended, authenticated recipient node possessing the corresponding private key.
-3. **Zero-Knowledge Intermediate Mesh Forwarding**: Intermediate mesh hops store and forward encrypted packets without decrypting them, maintaining payload confidentiality across the entire hop topology.
-4. **Attacker Simulation Realism**: The packet-sniffing adversary intercepts raw transmitted mesh packets over the wire, but cannot decrypt message payloads due to the absence of device private keys.
+1. **Sender-Side End-to-End Encryption**: Message content encryption occurs entirely on the sender device before any packet is queued for mesh transmission (Phase 5).
+2. **Authorized Receiver Decryption**: Decryption occurs exclusively at the intended, authenticated recipient node possessing the corresponding private key (Phase 6).
+3. **Zero-Knowledge Intermediate Mesh Forwarding**: Intermediate mesh hops store and forward encrypted packets without decrypting them, maintaining payload confidentiality across the entire hop topology (Phase 4).
+4. **Attacker Simulation Realism**: The packet-sniffing adversary intercepts raw transmitted mesh packets over the wire, but cannot decrypt message payloads due to the absence of device private keys (Phase 7).
 5. **Public-Only Centralized/Distributed Registry**: The registry stores only public identities and public cryptographic keys (signing and encryption).
 6. **Local Isolation of Private Keys**: Device private keys (e.g., Ed25519 signing keys, X25519 static/ephemeral keypairs) remain exclusively within the local secure boundary of the respective device. Private keys are never transmitted across the mesh, uploaded to the registry, or exposed in frontend code.
 7. **Simulation Scope**: The hackathon demonstration utilizes an in-process / software-based peer-to-peer mesh simulation to illustrate multi-hop routing, packet forwarding, and sniffing vulnerability without requiring physical LoRa / SDR radio hardware.
 8. **Blackout Resilience Assumption**: The core communication and verification model operates autonomously without relying on external internet connectivity or centralized third-party SaaS authentication services.
 9. **Metadata Realism**: The system protects message contents (payload confidentiality and authenticity). It does not claim to obscure routing metadata (such as packet IDs, sender IDs, hop headers, or transmission timestamps) necessary for mesh propagation.
-10. **Standard Cryptography Only**: No custom cryptographic primitives are implemented. All cryptographic operations in future phases will leverage established, audited algorithms from Python's standard `cryptography` library (e.g., Ed25519 for digital signatures, X25519 + HKDF for key agreement, and AES-256-GCM / ChaCha20-Poly1305 for authenticated encryption).
+10. **Standard Cryptography Only**: No custom cryptographic primitives are implemented. All cryptographic operations leverage established, audited algorithms from Python's standard `cryptography` library (Ed25519 for digital signatures/authentication, X25519 for key agreement, and AES-256-GCM / ChaCha20-Poly1305 for authenticated symmetric encryption).
+11. **Administrative Device Identity Boundary**: In Phase 2, "device identity" signifies an administrative registry record identified by a unique Device ID. It does not confer cryptographic authentication, proof of ownership, or proof of origin until cryptographic keypairs are introduced in Phase 3.
 
 ---
 
-## 3. Future Data Contracts (Planned for Later Phases)
+## 3. Phase 2: Trusted Rescue Registry & Administrative Device Identities
 
-> [!NOTE]
-> The contracts below represent conceptual specifications for upcoming phases. They are not active in Phase 1.
+### Implemented Functionality
+- **Safe JSON Persistence**: Atomic file writes via temporary file replacement (`backend/app/storage/json_store.py`) targeting `data/registry.json`.
+- **Administrative Identifiers**:
+  - `rescue_id`: Auto-generated unique format (`RESQ-001`, `RESQ-002`, etc.) with gap detection that never reuses retired IDs.
+  - `device_id`: Auto-generated unique format (`DEVICE-001`, `DEVICE-002`, etc.).
+- **Strict Input Validation**: Rejection of empty or whitespace-only inputs (`name`, `team`, `role`). Unknown fields (including any attempted private-key injection) are rejected with HTTP 422 (`extra="forbid"`).
+- **Public-Key Placeholders**: `signing_public_key` and `encryption_public_key` are strictly server-controlled and initialized to `null`.
+- **Lifecycle Management**:
+  - `status`: Strictly `"active"` or `"revoked"`.
+  - `revoked_at`: Records UTC ISO 8601 timestamp upon revocation.
+  - Historical records are preserved indefinitely upon revocation (never deleted).
+  - Repeated revocation returns HTTP 409 Conflict.
 
-### A. Rescue Registry Contract
-The registry catalogues authorized responders and rescue units. It contains strictly public identity and public key materials:
-
+### Registry Schema (`data/registry.json`)
 ```json
 {
   "version": 1,
   "members": [
     {
       "rescue_id": "RESQ-001",
-      "name": "Capt. Elena Rostova",
-      "team": "Search & Rescue Alpha",
-      "role": "Field Incident Commander",
-      "device_id": "DEV-ALPHA-01",
-      "signing_public_key": "MCowBQYDK2VwAyEA9k2s...[base64-encoded-ed25519-public-key]",
-      "encryption_public_key": "MC4CAQAwBQYDK2VuBCIEI...[base64-encoded-x25519-public-key]",
-      "status": "active"
+      "name": "Aarav Sharma",
+      "team": "Rescue Unit A",
+      "role": "Field Responder",
+      "device_id": "DEVICE-001",
+      "signing_public_key": null,
+      "encryption_public_key": null,
+      "status": "active",
+      "created_at": "2026-09-12T10:00:00+00:00",
+      "revoked_at": null
     }
   ]
 }
 ```
 
-- **`signing_public_key`**: Used by receivers to verify message authenticity and integrity.
-- **`encryption_public_key`**: Used by senders to derive shared symmetric encryption keys via ECDH key agreement.
-- **`status`**: `"active"` or `"revoked"`. Revoked keys prevent message acceptance.
+### Phase 2 Strict Scope Limitations
+- ❌ No Ed25519 key generation
+- ❌ No X25519 key generation
+- ❌ No AES-GCM or ChaCha20-Poly1305 encryption/decryption
+- ❌ No digital signatures or verification
+- ❌ No private-key generation, storage, or transmission
+- ❌ No mesh routing or multi-hop forwarding
+- ❌ No emergency message creation or dispatch
+- ❌ No packet sniffing or attacker simulation
 
-### B. Future Encrypted Packet Contract
-During mesh transmission, an emergency packet encapsulates ciphertext, ephemeral key exchange parameters, and the sender's digital signature:
+---
 
+## 4. Future Cryptographic Contracts (Phase 3 Preview)
+
+> [!NOTE]
+> The specifications below are planned for Phase 3 and beyond. They are not active in Phase 2.
+
+### Cryptographic Identity Allocation
+In Phase 3:
+- **Ed25519**: Used exclusively for digital signatures and authentication of message packets.
+- **X25519**: Used exclusively for Diffie-Hellman key agreement to derive symmetric keys via HKDF-SHA256.
+- **Private Keys**: Stored in strictly isolated, gitignored device files (`keys/<device_id>.json`). Never uploaded to the registry.
+
+### Future Encrypted Packet Specification (Planned for Phase 5)
 ```json
 {
   "packet_id": "PKT-1001",
@@ -69,95 +97,26 @@ During mesh transmission, an emergency packet encapsulates ciphertext, ephemeral
   "sender_id": "RESQ-001",
   "recipient_id": "RESQ-002",
   "timestamp": 1773300000,
-  "ephemeral_public_key": "base64-encoded-ephemeral-x25519-key",
-  "nonce": "base64-encoded-initialization-vector",
-  "ciphertext": "base64-encoded-authenticated-ciphertext",
-  "signature": "base64-encoded-ed25519-signature"
+  "ephemeral_public_key": "<base64-x25519-ephemeral-key>",
+  "nonce": "<base64-12-byte-iv>",
+  "ciphertext": "<base64-authenticated-ciphertext>",
+  "signature": "<base64-ed25519-signature>"
 }
 ```
 
-*Note:* In Phase 1, no mock or placeholder packets are transmitted. The exact field serialization will be integrated in Phase 3 (Cryptography) following the X25519 + HKDF-SHA256 + AES-GCM / ChaCha20-Poly1305 specification.
-
 ---
 
-## 4. Future Security Flow (Conceptual)
+## 5. Standardized 10-Phase Architectural Roadmap
 
-```text
-               +-----------------------------+
-               |   Emergency Message Input   |
-               | (Triage report, GPS coords) |
-               +--------------+--------------+
-                              |
-                              v
-               +-----------------------------+
-               |   Sender-Side Encryption    |
-               |  (X25519 ECDH + Auth Enc)   |
-               +--------------+--------------+
-                              |
-                              v
-               +-----------------------------+
-               |      Digital Signature      |
-               |      (Ed25519 Signing)      |
-               +--------------+--------------+
-                              |
-                              v
-               +-----------------------------+
-               |      Encrypted Packet       |
-               +--------------+--------------+
-                              |
-                              v
-               +-----------------------------+
-               |     Mesh Hop Forwarding     |
-               |   (Zero-knowledge relay)    |
-               +--------------+--------------+
-                              |
-                              v
-               +-----------------------------+
-               |   Receiver Verification     |
-               |  (Ed25519 Signature Check)  |
-               +--------------+--------------+
-                              |
-                              v
-               +-----------------------------+
-               |       Registry Check        |
-               |  (Sender active & trusted?) |
-               +--------------+--------------+
-                              |
-                              v
-               +-----------------------------+
-               |      Access Evaluation      |
-               | (Recipient authorized role) |
-               +--------------+--------------+
-                              |
-                              v
-               +-----------------------------+
-               | Receiver Payload Decryption |
-               | (Recipient Private Key +    |
-               | Ephemeral Public Key)       |
-               +--------------+--------------+
-                              |
-                              v
-               +-----------------------------+
-               |   Original Plaintext Read   |
-               +-----------------------------+
-```
-
----
-
-## 5. Phase 1 Scope & Implementation Status
-
-| Feature / Capability | Phase 1 Status | Target Phase |
-| :--- | :--- | :--- |
-| Project Foundation & Layout | **Implemented** | Phase 1 |
-| FastAPI Backend & Health APIs | **Implemented** | Phase 1 |
-| Automated Pytest Test Suite | **Implemented** | Phase 1 |
-| Safe Atomic JSON Storage Helper | **Implemented** | Phase 1 |
-| Frontend Status Dashboard | **Implemented** | Phase 1 |
-| Configurable CORS & API Base URL | **Implemented** | Phase 1 |
-| Responder Registry Management | *Planned* | Phase 2 |
-| Cryptographic Identity & Key Gen | *Planned* | Phase 2 |
-| X25519 Key Agreement & Encryption | *Planned* | Phase 3 |
-| Ed25519 Digital Signatures | *Planned* | Phase 3 |
-| Mesh Multi-Hop Simulation | *Planned* | Phase 4 |
-| Packet Sniffer / Attacker View | *Planned* | Phase 5 |
-| Full Live Emergency Dashboard | *Planned* | Phase 6 |
+| Phase | Designation | Status | Objective |
+| :--- | :--- | :--- | :--- |
+| **Phase 1** | Foundation & Architecture | **COMPLETED** | FastAPI backend, Vite/React frontend, atomic JSON store, tests, baseline health. |
+| **Phase 2** | Registry & Administrative Device IDs | **COMPLETED** | Member registry, unique RESQ/DEVICE IDs, active/revoked lifecycle, management UI. |
+| **Phase 3** | Cryptographic Identity & Key Management | *PLANNED* | Ed25519 signing keypairs, X25519 key agreement, isolated local private-key storage. |
+| **Phase 4** | Software Mesh Simulation | *PLANNED* | Multi-hop peer-to-peer network simulation with hop-by-hop zero-knowledge relay. |
+| **Phase 5** | Secure Message Transmission | *PLANNED* | Authenticated payload encryption (AES-GCM / ChaCha20) and Ed25519 packet signing. |
+| **Phase 6** | Authorization & Controlled Decryption | *PLANNED* | Recipient registry verification, active status checks, and authorized payload decryption. |
+| **Phase 7** | Packet-Sniffing Attack Simulation | *PLANNED* | Side-by-side comparison: plaintext mesh sniffing vs RESQ cryptographic confidentiality. |
+| **Phase 8** | Dashboard & Real-Time Visualization | *PLANNED* | Interactive tactical map, live mesh topology, event timeline, and audit logs. |
+| **Phase 9** | Security & Resilience Testing | *PLANNED* | Tamper detection tests, replay attack mitigation, and revoked-key rejection tests. |
+| **Phase 10** | Final Integration & Demo | *PLANNED* | Comprehensive disaster scenario walkthrough ready for hackathon presentation. |
