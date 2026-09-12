@@ -3,14 +3,13 @@ import {
   Network,
   ShieldCheck,
   KeyRound,
-  Layers,
   Pin,
   PinOff,
   Radio,
   ShieldAlert,
 } from 'lucide-react';
 
-export type NavTabId = 'mesh' | 'messages' | 'attack' | 'registry' | 'roadmap';
+export type NavTabId = 'mesh' | 'messages' | 'attack' | 'registry';
 
 interface SidebarProps {
   activeTab: NavTabId;
@@ -27,11 +26,10 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { id: 'mesh', name: 'Mesh Simulation', icon: Network, group: 'Operations', badge: 'PHASE 4' },
-  { id: 'messages', name: 'Secure Transmit', icon: ShieldCheck, group: 'Operations', badge: 'PHASE 5/6' },
-  { id: 'attack', name: 'Attack Simulation', icon: ShieldAlert, group: 'Operations', badge: 'PHASE 7' },
+  { id: 'mesh', name: 'Mesh Simulation', icon: Network, group: 'Operations' },
+  { id: 'messages', name: 'Secure Transmit', icon: ShieldCheck, group: 'Operations' },
+  { id: 'attack', name: 'Attack Simulation', icon: ShieldAlert, group: 'Operations' },
   { id: 'registry', name: 'Device Registry', icon: KeyRound, group: 'Administration' },
-  { id: 'roadmap', name: 'System Roadmap', icon: Layers, group: 'Administration' },
 ];
 
 const groups: ('Operations' | 'Administration')[] = ['Operations', 'Administration'];

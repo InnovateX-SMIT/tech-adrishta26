@@ -14,7 +14,6 @@ const TAB_TITLES: Record<NavTabId, string> = {
   messages: 'Secure Cryptographic Messaging',
   attack: 'Packet-Sniffing Attack Simulation',
   registry: 'Rescue Device & Key Registry',
-  roadmap: 'Architecture & Phase Roadmap',
 };
 
 export const Navbar: React.FC<NavbarProps> = ({

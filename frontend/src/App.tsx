@@ -24,7 +24,6 @@ import {
   UserPlus,
   CheckCircle2,
   AlertTriangle,
-  Layers,
   Activity,
 } from 'lucide-react';
 
@@ -501,78 +500,6 @@ export const App: React.FC = () => {
               </div>
             )}
 
-            {/* TAB 4: SYSTEM ROADMAP */}
-            {activeTab === 'roadmap' && (
-              <div className="space-y-6 animate-fade-in">
-                <div className="flex items-center gap-3 border-b border-slate-800/70 pb-5">
-                  <div className="p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-                    <Layers className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h1 className="text-xl sm:text-2xl font-black text-slate-100 uppercase tracking-tight">
-                      Standardized 10-Phase Architectural Roadmap
-                    </h1>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Structured multi-phase execution ensuring strict security boundaries and complete auditability.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { num: 'PHASE 01', title: 'Foundation & Architecture', status: 'COMPLETED', desc: 'FastAPI backend, clean modular structure, safe atomic JSON storage, and test suite.' },
-                    { num: 'PHASE 02', title: 'Rescue Registry & Device IDs', status: 'COMPLETED', desc: 'Trusted team registry, administrative Rescue/Device IDs, active/revoked lifecycle.' },
-                    { num: 'PHASE 03', title: 'Cryptographic Security Layer', status: 'COMPLETED', desc: 'Ed25519 signing keypairs, X25519 key agreement, HKDF-SHA256, and ChaCha20-Poly1305.' },
-                    { num: 'PHASE 04', title: 'Software Mesh Simulation', status: 'COMPLETED', desc: 'BFS shortest-path routing, multi-hop packet relay, node outage resilience, and passive link tap.' },
-                    { num: 'PHASE 05', title: 'Secure Message Transmission', status: 'COMPLETED', desc: 'Authenticated X25519 + ChaCha20-Poly1305 payload encryption and Ed25519 canonical signatures.' },
-                    { num: 'PHASE 06', title: 'Authorization Gate & Controlled Decryption', status: 'ACTIVE PHASE', desc: 'Recipient identity verification, registry status validation, replay protection, and authorized decryption.' },
-                    { num: 'PHASE 07', title: 'Packet-Sniffing Attack Simulation', status: 'PLANNED', desc: 'Side-by-side demonstration: unencrypted packet sniffing vs encrypted mesh payload confidentiality.' },
-                    { num: 'PHASE 08', title: 'Dashboard & Real-Time UI', status: 'PLANNED', desc: 'Interactive tactical operations dashboard with live mesh topology visualization and audit log.' },
-                    { num: 'PHASE 09', title: 'Security & Resilience Testing', status: 'PLANNED', desc: 'Adversarial tamper testing, replay attack validation, and revoked-member rejection tests.' },
-                    { num: 'PHASE 10', title: 'Final Integration & Demo', status: 'PLANNED', desc: 'Comprehensive end-to-end disaster scenario demonstration ready for presentation.' },
-                  ].map((phase, idx) => {
-                    const isCompleted = phase.status === 'COMPLETED';
-                    const isActive = phase.status === 'ACTIVE PHASE';
-
-                    return (
-                      <div
-                        key={idx}
-                        className={`glass-card p-5 rounded-2xl border transition-all duration-300 relative overflow-hidden ${
-                          isActive
-                            ? 'border-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.15)] bg-indigo-950/20'
-                            : isCompleted
-                            ? 'border-slate-800/80 hover:border-slate-700/80'
-                            : 'border-slate-900/60 opacity-60'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
-                            {phase.num}
-                          </span>
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
-                              isActive
-                                ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400 animate-pulse'
-                                : isCompleted
-                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                : 'bg-slate-800 border-slate-700 text-slate-500'
-                            }`}
-                          >
-                            {phase.status}
-                          </span>
-                        </div>
-                        <h4 className="text-sm font-bold text-slate-100 uppercase tracking-tight mb-1.5">
-                          {phase.title}
-                        </h4>
-                        <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                          {phase.desc}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </div>
         </main>
       </div>
