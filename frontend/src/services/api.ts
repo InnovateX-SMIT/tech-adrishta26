@@ -197,4 +197,35 @@ export const apiService = {
       body: { node_a: nodeA, node_b: nodeB },
     });
   },
+
+  // -------------------------------------------------------------------------
+  // Phase 5 & 6 — Secure Messaging & Authorization Gate
+  // -------------------------------------------------------------------------
+
+  async sendSecureMessage(
+    payload: import('../types').SendMessageRequest
+  ): Promise<import('../types').SendMessageResponse> {
+    return requestWithTimeout<import('../types').SendMessageResponse>('/api/messages/send', {
+      method: 'POST',
+      body: payload,
+    });
+  },
+
+  async fetchDeviceInbox(
+    recipientId: string
+  ): Promise<import('../types').InboxMessageSummary[]> {
+    return requestWithTimeout<import('../types').InboxMessageSummary[]>(
+      `/api/messages/inbox/${encodeURIComponent(recipientId)}`
+    );
+  },
+
+  async decryptMessage(
+    payload: import('../types').DecryptMessageRequest
+  ): Promise<import('../types').DecryptMessageResponse> {
+    return requestWithTimeout<import('../types').DecryptMessageResponse>('/api/messages/decrypt', {
+      method: 'POST',
+      body: payload,
+    });
+  },
 };
+

@@ -267,6 +267,72 @@ class CryptoService:
             encryption_public_key=member.encryption_public_key,
         )
 
+    def bootstrap_dev_identities(self) -> int:
+        """Development bootstrap helper.
+
+        Inspects registry members in development environment:
+        If an active member has missing or mismatched private keys on disk,
+        generates fresh keypairs, saves private keys locally, and updates registry
+        with the matching public keys.
+        Ensures pre-seeded identities (RESQ-001..005 etc.) work out of the box.
+        """
+        bootstrapped_count = 0
+        members = self.registry_service.get_all_members()
+
+        for member in members:
+            if member.status != MemberStatus.ACTIVE:
+                continue
+
+            dev_id = member.device_id
+            sign_path = self._get_signing_key_path(dev_id)
+            enc_path = self._get_encryption_key_path(dev_id)
+
+            keys_need_generation = False
+            if not sign_path.is_file() or not enc_path.is_file():
+                keys_need_generation = True
+            elif not member.signing_public_key or not member.encryption_public_key:
+                keys_need_generation = True
+            else:
+                try:
+                    s_pem = sign_path.read_bytes()
+                    e_pem = enc_path.read_bytes()
+                    s_priv = load_ed25519_private_key_pem(s_pem)
+                    e_priv = load_x25519_private_key_pem(e_pem)
+                    derived_s_pub = encode_public_key_b64(s_priv.public_key())
+                    derived_e_pub = encode_public_key_b64(e_priv.public_key())
+                    if derived_s_pub != member.signing_public_key or derived_e_pub != member.encryption_public_key:
+                        keys_need_generation = True
+                except Exception:
+                    keys_need_generation = True
+
+            if keys_need_generation:
+                s_priv, s_pub = generate_ed25519_keypair()
+                e_priv, e_pub = generate_x25519_keypair()
+
+                s_pub_b64 = encode_public_key_b64(s_pub)
+                e_pub_b64 = encode_public_key_b64(e_pub)
+
+                dev_dir = self._get_device_dir(dev_id)
+                dev_dir.mkdir(parents=True, exist_ok=True)
+                sign_path.write_bytes(serialize_private_key_pem(s_priv))
+                enc_path.write_bytes(serialize_private_key_pem(e_priv))
+
+                try:
+                    os.chmod(dev_dir, 0o700)
+                    os.chmod(sign_path, 0o600)
+                    os.chmod(enc_path, 0o600)
+                except OSError:
+                    pass
+
+                self.registry_service.update_member_public_keys(
+                    device_id=dev_id,
+                    signing_public_key=s_pub_b64,
+                    encryption_public_key=e_pub_b64,
+                )
+                bootstrapped_count += 1
+
+        return bootstrapped_count
+
     def load_device_signing_private_key(self, device_id: str):
         """Loads the local Ed25519 signing private key for a device."""
         key_path = self._get_signing_key_path(device_id)
@@ -284,3 +350,5 @@ class CryptoService:
 
 # Default singleton instance
 crypto_service = CryptoService()
+
+

@@ -1,6 +1,6 @@
 import time
 import uuid
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 from backend.app.core.crypto import (
     canonicalize_payload,
@@ -8,9 +8,12 @@ from backend.app.core.crypto import (
     encrypt_authenticated,
     sign_bytes,
 )
+from backend.app.core.decryption_gate import process_incoming_packet
 from backend.app.core.mesh_network import MeshNetwork, NoRouteError
 from backend.app.core.mesh_packet import MeshPacket
 from backend.app.models.messages import (
+    DecryptMessageResponse,
+    InboxMessageSummary,
     SecureMessagePayload,
     SendMessageRequest,
     SendMessageResponse,
@@ -50,16 +53,28 @@ class MeshNodeNotFoundError(MessageServiceError):
     pass
 
 
-class MessageService:
-    """Orchestrates Phase 5 Secure Message Transmission.
+class PacketNotFoundError(MessageServiceError):
+    """Raised when a requested packet ID cannot be found in a device's inbox."""
+    pass
 
-    Flow:
+
+class MessageService:
+    """Orchestrates Phase 5 Secure Message Transmission & Phase 6 Controlled Decryption.
+
+    Transmission Flow (Phase 5):
     1. Resolves administrative Rescue IDs or Device IDs to registered RescueMembers.
     2. Enforces active status and cryptographic key readiness on both parties.
-    3. Authenticates and encrypts plaintext message via X25519 + ChaCha20-Poly1305.
+    3. Authenticates and encrypts plaintext message via X25519 + ChaCha20-Poly1305 + HKDF-SHA256.
     4. Signs canonical metadata + ciphertext using sender's Ed25519 private key.
     5. Encapsulates secure payload (strictly NO plaintext) into an opaque MeshPacket.
     6. Routes and forwards packet across the software-simulated mesh network.
+
+    Decryption Flow (Phase 6):
+    1. Resolves recipient device and pulls encrypted packet from recipient inbox.
+    2. Loads local recipient X25519 private key without exposing it to APIs or logs.
+    3. Invokes Phase 6 authorization gate (registry lookup, active check, Ed25519 signature verification,
+       recipient authorization check, replay protection, and ChaCha20-Poly1305 decryption).
+    4. Releases plaintext only upon 100% verification success.
     """
 
     def __init__(
@@ -223,6 +238,114 @@ class MessageService:
                 for h in mesh_packet.hop_log
             ],
             payload=secure_payload,
+        )
+
+    def get_inbox_messages(self, recipient_id: str) -> List[InboxMessageSummary]:
+        """Retrieves all encrypted packets delivered to a recipient device's inbox."""
+        recipient_member = self.resolve_member(recipient_id)
+        net = self.get_network()
+
+        if recipient_member.device_id not in net.nodes:
+            return []
+
+        node = net.nodes[recipient_member.device_id]
+        summaries: List[InboxMessageSummary] = []
+
+        for pkt in node.inbox:
+            payload_data = pkt.payload
+            if isinstance(payload_data, dict) and "ciphertext" in payload_data:
+                try:
+                    p = SecureMessagePayload(**payload_data)
+                    summaries.append(
+                        InboxMessageSummary(
+                            packet_id=p.packet_id,
+                            message_id=p.message_id,
+                            sender_rescue_id=p.sender_rescue_id,
+                            sender_device_id=p.sender_device_id,
+                            recipient_rescue_id=p.recipient_rescue_id,
+                            recipient_device_id=p.recipient_device_id,
+                            timestamp=p.timestamp,
+                            status="encrypted",
+                            payload=p,
+                        )
+                    )
+                except Exception:
+                    continue
+
+        return summaries
+
+    def decrypt_inbox_message(
+        self,
+        recipient_id: str,
+        packet_id: str,
+    ) -> DecryptMessageResponse:
+        """Processes an incoming inbox packet through the Phase 6 authorization & decryption gate."""
+        recipient_member = self.resolve_member(recipient_id)
+        net = self.get_network()
+
+        if recipient_member.device_id not in net.nodes:
+            raise MeshNodeNotFoundError(
+                f"Recipient node '{recipient_member.device_id}' is not in the mesh network."
+            )
+
+        node = net.nodes[recipient_member.device_id]
+        target_pkt = None
+        for pkt in node.inbox:
+            if pkt.packet_id == packet_id:
+                target_pkt = pkt
+                break
+
+        if not target_pkt:
+            raise PacketNotFoundError(
+                f"Packet '{packet_id}' not found in inbox of {recipient_member.rescue_id} ({recipient_member.device_id})."
+            )
+
+        # Load recipient's private key locally
+        recipient_priv_key = self.crypto_service.load_device_encryption_private_key(
+            recipient_member.device_id
+        )
+
+        gate_result = process_incoming_packet(
+            packet=target_pkt.payload,
+            current_receiver_id=recipient_member.device_id,
+            receiver_private_key=recipient_priv_key,
+        )
+
+        return DecryptMessageResponse(
+            status=gate_result["status"],
+            message=gate_result.get("message"),
+            sender_name=gate_result.get("sender_name"),
+            sender_id=gate_result.get("sender_id"),
+            packet_id=gate_result.get("packet_id", packet_id),
+            message_id=gate_result.get("message_id"),
+            reason=gate_result.get("reason"),
+        )
+
+    def decrypt_direct_payload(
+        self,
+        recipient_id: str,
+        payload: SecureMessagePayload,
+    ) -> DecryptMessageResponse:
+        """Directly passes a SecureMessagePayload through the Phase 6 gate for recipient_id."""
+        recipient_member = self.resolve_member(recipient_id)
+        recipient_priv_key = self.crypto_service.load_device_encryption_private_key(
+            recipient_member.device_id
+        )
+
+        gate_result = process_incoming_packet(
+            packet=payload.model_dump(),
+            current_receiver_id=recipient_member.device_id,
+            receiver_private_key=recipient_priv_key,
+        )
+
+        return DecryptMessageResponse(
+            status=gate_result["status"],
+            message=gate_result.get("message"),
+            sender_name=gate_result.get("sender_name"),
+            sender_id=gate_result.get("sender_id"),
+            packet_id=gate_result.get("packet_id", payload.packet_id),
+            message_id=gate_result.get("message_id", payload.message_id),
+            reason=gate_result.get("reason"),
         )
 
 

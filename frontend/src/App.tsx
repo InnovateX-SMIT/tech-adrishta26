@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiService } from './services/api';
 import { MeshVisualizer } from './components/MeshVisualizer';
+import { SecureMessaging } from './components/SecureMessaging';
 import {
   HealthResponse,
   SystemInfoResponse,
@@ -10,7 +11,7 @@ import {
 
 export const App: React.FC = () => {
   // Navigation state
-  const [activeTab, setActiveTab] = useState<'mesh' | 'registry' | 'roadmap'>('mesh');
+  const [activeTab, setActiveTab] = useState<'mesh' | 'messages' | 'registry' | 'roadmap'>('mesh');
 
   // Backend status states
   const [connectionState, setConnectionState] = useState<ConnectionState>('loading');
@@ -184,7 +185,9 @@ export const App: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <span className="phase-tag">Phase 4: Mesh Simulation Active</span>
+          <span className="phase-tag" style={{ background: 'rgba(16, 185, 129, 0.2)', color: 'var(--accent-emerald)', border: '1px solid var(--accent-emerald)' }}>
+            Phase 6: End-to-End Secure Transmission Active
+          </span>
           <button
             id="refresh-status-btn"
             className="btn-refresh"
@@ -203,16 +206,16 @@ export const App: React.FC = () => {
       {/* Hero Problem Statement */}
       <section className="hero-card">
         <div className="hero-badge">
-          <span>⚠️ Blackout Threat Model</span>
+          <span>🔒 Cryptographic Mesh Security Active</span>
         </div>
         <h2 className="hero-title">
-          Unencrypted peer-to-peer mesh network vulnerable to packet sniffing during a blackout.
+          End-to-end authenticated, encrypted emergency mesh communication across blackout zones.
         </h2>
         <p className="hero-description">
-          During infrastructure blackout conditions, rescue teams deploy ad-hoc peer-to-peer mesh relays.
-          Phase 4 introduces an interactive software-based mesh simulation with BFS shortest-path routing,
-          multi-hop forwarding with TTL limits, node failure resilience (online/offline toggle),
-          and passive packet-sniffing interception on shared links.
+          Phase 6 integrates the entire emergency pipeline: X25519 key agreement, HKDF-SHA256 derivation,
+          ChaCha20-Poly1305 AEAD payload encryption, Ed25519 canonical JSON signatures, multi-hop mesh routing,
+          and a strict 6-step recipient authorization gate protecting emergency dispatches from passive sniffing,
+          tampering, and replay attacks.
         </p>
       </section>
 
@@ -230,6 +233,17 @@ export const App: React.FC = () => {
             <path d="M8.5 7.5l7 0M7.5 8.5l3.5 7M16.5 8.5l-3.5 7" />
           </svg>
           Mesh Topology &amp; Simulation
+        </button>
+        <button
+          id="tab-messages-btn"
+          className={`tab-btn ${activeTab === 'messages' ? 'active' : ''}`}
+          onClick={() => setActiveTab('messages')}
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" strokeWidth="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          Secure Messaging &amp; Gate (Phase 6)
         </button>
         <button
           id="tab-registry-btn"
@@ -264,6 +278,13 @@ export const App: React.FC = () => {
       {activeTab === 'mesh' && (
         <section style={{ marginTop: '1rem' }}>
           <MeshVisualizer />
+        </section>
+      )}
+
+      {/* TAB 2: Secure Messaging & Controlled Decryption Gate */}
+      {activeTab === 'messages' && (
+        <section style={{ marginTop: '1rem' }}>
+          <SecureMessaging members={members} onRefreshMembers={loadMembers} />
         </section>
       )}
 
@@ -667,10 +688,10 @@ export const App: React.FC = () => {
               </p>
             </div>
 
-            <div className="phase-card active">
+            <div className="phase-card completed">
               <div className="phase-card-header">
                 <span className="phase-num">PHASE 04</span>
-                <span className="phase-status-tag active">ACTIVE PHASE</span>
+                <span className="phase-status-tag completed">COMPLETED</span>
               </div>
               <h4 className="phase-title">Software Mesh Simulation</h4>
               <p className="phase-desc">
@@ -678,25 +699,25 @@ export const App: React.FC = () => {
               </p>
             </div>
 
-            <div className="phase-card">
+            <div className="phase-card completed">
               <div className="phase-card-header">
                 <span className="phase-num">PHASE 05</span>
-                <span className="phase-status-tag planned">PLANNED</span>
+                <span className="phase-status-tag completed">COMPLETED</span>
               </div>
               <h4 className="phase-title">Secure Message Transmission</h4>
               <p className="phase-desc">
-                Authenticated payload encryption and Ed25519 packet signing over mesh topologies.
+                Authenticated X25519 + ChaCha20-Poly1305 + HKDF-SHA256 payload encryption and Ed25519 canonical JSON signatures.
               </p>
             </div>
 
-            <div className="phase-card">
+            <div className="phase-card active">
               <div className="phase-card-header">
                 <span className="phase-num">PHASE 06</span>
-                <span className="phase-status-tag planned">PLANNED</span>
+                <span className="phase-status-tag active">ACTIVE PHASE</span>
               </div>
-              <h4 className="phase-title">Authorization &amp; Decryption</h4>
+              <h4 className="phase-title">Authorization Gate &amp; Controlled Decryption</h4>
               <p className="phase-desc">
-                Recipient identity verification, registry status validation, and authorized payload decryption.
+                Recipient identity verification, registry status validation, Ed25519 signature checks, replay protection, and authorized payload decryption.
               </p>
             </div>
 
@@ -749,7 +770,7 @@ export const App: React.FC = () => {
 
       {/* Footer */}
       <footer className="footer">
-        <div>RESQ Security System &bull; Phase 4 Mesh Simulation Active</div>
+        <div>RESQ Security System &bull; Phase 6 End-to-End Encrypted Mesh Active</div>
         <div>Software-based Mesh Blackout Resilience Demo</div>
       </footer>
     </div>

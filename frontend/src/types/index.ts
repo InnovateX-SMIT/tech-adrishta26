@@ -122,3 +122,72 @@ export interface DeliveryLogSchema {
   error: string | null;
   timestamp: string;
 }
+
+// ---------------------------------------------------------------------------
+// Phase 5 & 6 — Secure Messaging & Authorization Gate Types
+// ---------------------------------------------------------------------------
+
+export interface SecureMessagePayload {
+  version: number;
+  packet_id: string;
+  message_id: string;
+  sender_rescue_id: string;
+  sender_device_id: string;
+  recipient_rescue_id: string;
+  recipient_device_id: string;
+  timestamp: number;
+  key_agreement: string;
+  kdf: string;
+  cipher: string;
+  ephemeral_public_key: string;
+  salt: string;
+  nonce: string;
+  ciphertext: string;
+  signature: string;
+}
+
+export interface SendMessageRequest {
+  sender_id: string;
+  recipient_id: string;
+  message: string;
+  priority?: string;
+}
+
+export interface SendMessageResponse {
+  packet_id: string;
+  message_id: string;
+  sender_id: string;
+  recipient_id: string;
+  status: string;
+  hop_log: HopRecordSchema[];
+  payload: SecureMessagePayload;
+}
+
+export interface InboxMessageSummary {
+  packet_id: string;
+  message_id: string;
+  sender_rescue_id: string;
+  sender_device_id: string;
+  recipient_rescue_id: string;
+  recipient_device_id: string;
+  timestamp: number;
+  status: string;
+  payload: SecureMessagePayload;
+}
+
+export interface DecryptMessageRequest {
+  recipient_id: string;
+  packet_id?: string;
+  payload?: SecureMessagePayload;
+}
+
+export interface DecryptMessageResponse {
+  status: 'SUCCESS' | 'REJECTED';
+  message?: string | null;
+  sender_name?: string | null;
+  sender_id?: string | null;
+  packet_id?: string | null;
+  message_id?: string | null;
+  reason?: string | null;
+}
+

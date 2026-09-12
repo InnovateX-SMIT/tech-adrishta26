@@ -69,3 +69,48 @@ class SendMessageResponse(BaseModel):
     status: str = Field("delivered", examples=["delivered"])
     hop_log: List[HopRecordSchema] = Field(default_factory=list)
     payload: SecureMessagePayload
+
+
+class DecryptMessageRequest(BaseModel):
+    """Request model for Phase 6 controlled authorization and decryption."""
+    model_config = ConfigDict(extra="forbid")
+
+    recipient_id: str = Field(
+        ...,
+        min_length=1,
+        description="Recipient Rescue ID (e.g. RESQ-002) or Device ID (e.g. DEVICE-002) performing decryption",
+        examples=["RESQ-002"],
+    )
+    packet_id: Optional[str] = Field(
+        None,
+        description="Unique packet ID to locate in the recipient device's inbox",
+        examples=["PKT-1001"],
+    )
+    payload: Optional[SecureMessagePayload] = Field(
+        None,
+        description="Optional direct SecureMessagePayload to authorize and decrypt",
+    )
+
+
+class DecryptMessageResponse(BaseModel):
+    """Response returned by the Phase 6 authorization & decryption gate."""
+    status: str = Field(..., description="'SUCCESS' or 'REJECTED'", examples=["SUCCESS"])
+    message: Optional[str] = Field(None, description="Decrypted plaintext released only on authorization success")
+    sender_name: Optional[str] = Field(None, description="Authenticated sender name from registry")
+    sender_id: Optional[str] = Field(None, description="Authenticated sender Rescue ID")
+    packet_id: Optional[str] = Field(None, description="Packet ID processed")
+    message_id: Optional[str] = Field(None, description="Message ID processed")
+    reason: Optional[str] = Field(None, description="Controlled rejection reason if authorization or decryption failed")
+
+
+class InboxMessageSummary(BaseModel):
+    """Encrypted packet summary sitting in a device's inbox awaiting authorization."""
+    packet_id: str = Field(..., examples=["PKT-1001"])
+    message_id: str = Field(..., examples=["MSG-1001"])
+    sender_rescue_id: str = Field(..., examples=["RESQ-001"])
+    sender_device_id: str = Field(..., examples=["DEVICE-001"])
+    recipient_rescue_id: str = Field(..., examples=["RESQ-002"])
+    recipient_device_id: str = Field(..., examples=["DEVICE-002"])
+    timestamp: int = Field(..., examples=[1789210000])
+    status: str = Field("encrypted", examples=["encrypted"])
+    payload: SecureMessagePayload
