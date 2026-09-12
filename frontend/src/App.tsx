@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { apiService } from './services/api';
 import { MeshVisualizer } from './components/MeshVisualizer';
 import { SecureMessaging } from './components/SecureMessaging';
+import { AttackSimulation } from './components/AttackSimulation';
 import { Sidebar, NavTabId } from './components/layout/Sidebar';
 import { Navbar } from './components/layout/Navbar';
 import { SectionHeader } from './components/layout/SectionHeader';
@@ -277,7 +278,14 @@ export const App: React.FC = () => {
               </div>
             )}
 
-            {/* TAB 3: RESCUE REGISTRY & IDENTITY */}
+            {/* TAB 3: ATTACK SIMULATION & CONTRAST MODE (PHASE 7) */}
+            {activeTab === 'attack' && (
+              <div className="space-y-6">
+                <AttackSimulation />
+              </div>
+            )}
+
+            {/* TAB 4: RESCUE REGISTRY & IDENTITY */}
             {activeTab === 'registry' && (
               <div className="space-y-8 animate-fade-in">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/70 pb-5">

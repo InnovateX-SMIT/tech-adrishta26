@@ -246,4 +246,76 @@ export interface ConversationResponse {
   messages: MessageRecord[];
 }
 
+// Phase 7: Attack Simulation & Contrast Mode
+export type SimulationMode = 'vulnerable' | 'protected';
+
+export interface CapturedPacket {
+  simulation_id: string;
+  capture_id: string;
+  packet_id: string;
+  message_id: string;
+  captured_at: string;
+  captured_at_node: string;
+  sender_id: string;
+  recipient_id: string;
+  route: string[];
+  communication_mode: SimulationMode;
+  packet_size: number;
+  metadata_visible_to_attacker: boolean;
+  contains_plaintext: boolean;
+  plaintext_exposed: boolean;
+  ciphertext_present: boolean;
+  signature_present: boolean;
+  sniffed_content: string;
+  message_readable_by_attacker: boolean;
+  security_result: string;
+  explanation: string;
+  raw_payload?: Record<string, unknown> | null;
+}
+
+export interface SimulateAttackRequest {
+  mode: SimulationMode;
+  sender_id: string;
+  recipient_id: string;
+  message: string;
+  attacker_node_id?: string | null;
+}
+
+export interface SimulateAttackResponse {
+  simulation_id: string;
+  mode: SimulationMode;
+  packet_id: string;
+  message_id: string;
+  captured: boolean;
+  captured_packet: CapturedPacket | null;
+  route: string[];
+  receiver_result: Record<string, unknown>;
+  security_logs: string[];
+  summary_sentence: string;
+}
+
+export interface TamperCaptureRequest {
+  capture_id: string;
+  tamper_field: 'ciphertext' | 'signature' | 'nonce';
+  recipient_id?: string | null;
+}
+
+export interface TamperCaptureResponse {
+  capture_id: string;
+  tampered_field: string;
+  receiver_status: string;
+  rejection_reason?: string | null;
+  rejection_detail?: string | null;
+  plaintext_revealed: boolean;
+  explanation: string;
+}
+
+export interface AttackStatusResponse {
+  total_captures: number;
+  vulnerable_captures: number;
+  protected_captures: number;
+  last_capture?: CapturedPacket | null;
+}
+
+
 

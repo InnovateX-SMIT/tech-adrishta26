@@ -7,9 +7,10 @@ import {
   Pin,
   PinOff,
   Radio,
+  ShieldAlert,
 } from 'lucide-react';
 
-export type NavTabId = 'mesh' | 'messages' | 'registry' | 'roadmap';
+export type NavTabId = 'mesh' | 'messages' | 'attack' | 'registry' | 'roadmap';
 
 interface SidebarProps {
   activeTab: NavTabId;
@@ -27,7 +28,8 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { id: 'mesh', name: 'Mesh Simulation', icon: Network, group: 'Operations', badge: 'PHASE 4' },
-  { id: 'messages', name: 'Secure Transmit', icon: ShieldCheck, group: 'Operations', badge: 'PHASE 5' },
+  { id: 'messages', name: 'Secure Transmit', icon: ShieldCheck, group: 'Operations', badge: 'PHASE 5/6' },
+  { id: 'attack', name: 'Attack Simulation', icon: ShieldAlert, group: 'Operations', badge: 'PHASE 7' },
   { id: 'registry', name: 'Device Registry', icon: KeyRound, group: 'Administration' },
   { id: 'roadmap', name: 'System Roadmap', icon: Layers, group: 'Administration' },
 ];

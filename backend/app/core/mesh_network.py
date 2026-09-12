@@ -319,10 +319,10 @@ class MeshNetwork:
             packet.hop_log.append(hop_record)
 
             # Attacker sniffing: capture if any registered attacker node is
-            # adjacent to this hop's edge (i.e. neighbors from_id or to_id).
+            # adjacent to this hop's edge or an on-path relay node.
             for node in self.nodes.values():
-                if node.is_attacker and node.node_id != from_id and node.node_id != to_id:
-                    if from_id in node.neighbors or to_id in node.neighbors:
+                if node.is_attacker and node.node_id != packet.receiver_id:
+                    if from_id in node.neighbors or to_id in node.neighbors or node.node_id in (from_id, to_id):
                         node.capture_packet(packet)
 
         # Deliver to destination

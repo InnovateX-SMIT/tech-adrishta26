@@ -269,6 +269,54 @@ export const apiService = {
       `/api/conversations/${encodeURIComponent(deviceA)}/${encodeURIComponent(deviceB)}`
     );
   },
+
+  // -------------------------------------------------------------------------
+  // Phase 7 — Attack Simulation & Contrast Mode
+  // -------------------------------------------------------------------------
+
+  async simulateAttack(
+    payload: import('../types').SimulateAttackRequest
+  ): Promise<import('../types').SimulateAttackResponse> {
+    return requestWithTimeout<import('../types').SimulateAttackResponse>('/api/attack/simulate', {
+      method: 'POST',
+      body: payload,
+    });
+  },
+
+  async tamperCapture(
+    captureId: string,
+    payload: import('../types').TamperCaptureRequest
+  ): Promise<import('../types').TamperCaptureResponse> {
+    return requestWithTimeout<import('../types').TamperCaptureResponse>(
+      `/api/attack/captures/${encodeURIComponent(captureId)}/tamper`,
+      {
+        method: 'POST',
+        body: payload,
+      }
+    );
+  },
+
+  async fetchCaptures(): Promise<import('../types').CapturedPacket[]> {
+    return requestWithTimeout<import('../types').CapturedPacket[]>('/api/attack/captures');
+  },
+
+  async fetchCapture(captureId: string): Promise<import('../types').CapturedPacket> {
+    return requestWithTimeout<import('../types').CapturedPacket>(
+      `/api/attack/captures/${encodeURIComponent(captureId)}`
+    );
+  },
+
+  async getAttackStatus(): Promise<import('../types').AttackStatusResponse> {
+    return requestWithTimeout<import('../types').AttackStatusResponse>('/api/attack/status');
+  },
+
+  async resetAttackSimulation(): Promise<{ status: string; message: string; total_captures: number }> {
+    return requestWithTimeout<{ status: string; message: string; total_captures: number }>(
+      '/api/attack/reset',
+      { method: 'POST' }
+    );
+  },
 };
+
 
 

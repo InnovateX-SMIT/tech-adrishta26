@@ -12,6 +12,7 @@ interface NavbarProps {
 const TAB_TITLES: Record<NavTabId, string> = {
   mesh: 'Mesh Simulation & Routing',
   messages: 'Secure Cryptographic Messaging',
+  attack: 'Packet-Sniffing Attack Simulation',
   registry: 'Rescue Device & Key Registry',
   roadmap: 'Architecture & Phase Roadmap',
 };
