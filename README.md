@@ -5,6 +5,7 @@
 [![Frontend: React + Vite](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-61dafb?style=for-the-badge&logo=react)](frontend/)
 [![Cryptography](https://img.shields.io/badge/Crypto-X25519%20%7C%20ChaCha20--Poly1305%20%7C%20Ed25519-indigo?style=for-the-badge&logo=lock)](backend/app/services/crypto_service.py)
 [![Test Suite](https://img.shields.io/badge/Automated%20Tests-Passing-success?style=for-the-badge&logo=pytest)](tests/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 
 > **Executive Summary for Judges:**  
 > When blackouts, earthquakes, or conflicts take down cellular towers and internet backbones, first responders rely on ad-hoc wireless mesh relays. However, **traditional mesh networks broadcast plain unencrypted packets**, leaving life-critical coordinates and rescue plans vulnerable to sniffing, spoofing, and tampering.  
@@ -23,6 +24,8 @@
 - [⚙️ Tech Stack & Cryptography Standards](#️-tech-stack--cryptography-standards)
 - [🚀 Quick Start Guide (Run in 2 Minutes)](#-quick-start-guide-run-in-2-minutes)
 - [🧪 Automated Verification & Test Suite](#-automated-verification--test-suite)
+- [👥 Team InnovateX](#-team-innovatex)
+- [📄 License](#-license)
 
 ---
 
@@ -223,7 +226,23 @@ pytest tests/ -v
 
 ---
 
+## 👥 Team InnovateX
+
+| Name | Role |
+| :--- | :--- |
+| **Krish Anand** | Team Leader |
+| **Abhinav Puri** | Team Member |
+| **Debojit Deb** | Team Member |
+| **Shreya Singh** | Team Member |
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+---
+
 <p align="center">
-  <b>Built for Tech Adrishta 2026</b><br>
-  <i>Mission-Critical • Zero-Trust • Tamper-Proof</i>
+  <b>RESQ</b> · Built with ❤️ for <b>Tech Adrishta 26</b> by <b>Team InnovateX, SMIT</b>.
 </p>
